@@ -32,22 +32,30 @@ import {
   X,
 } from "lucide-react";
 import { parseBackup, serializeBackup } from "./backup";
+import { CoachMark } from "./CoachMark";
 import { CountdownCard } from "./CountdownCard";
 import { CountdownEditor } from "./CountdownEditor";
 import { getCountdownConfig, updateBoardWidgetWithCountdown } from "./countdown";
 import { formatDate as format, isSameDay, parseISO } from "./date";
 import { repository } from "./db";
 import { GuideCard } from "./GuideCard";
+import { LATEST_RELEASE } from "./guideData";
 import { GuideTour } from "./GuideTour";
 import { GuideView } from "./GuideView";
 import {
   completeTour,
+  dismissTip,
   dismissTour,
   GUIDE_EVENT_START_TOUR,
+  isReleaseSeen,
+  isTipDismissed,
   loadGuideState,
+  markReleaseSeen,
+  TIP_IDS,
   type StartTourEventDetail,
 } from "./guideState";
 import { createHousehold, createSampleHousehold } from "./sample";
+import { WhatsNewNotice } from "./WhatsNewNotice";
 import type {
   BoardWidget,
   BoardWidgetType,
@@ -626,6 +634,11 @@ function TodayBoard({
   guideState,
   onStartTour,
   onDismissGuideCard,
+  onDismissTip,
+  postUpdateIntent,
+  onSeeWhatsNew,
+  onDismissWhatsNew,
+  suppressTips = false,
 }: {
   snapshot: HouseholdSnapshot;
   filterId: string | null;
@@ -635,12 +648,18 @@ function TodayBoard({
   guideState: GuideState;
   onStartTour: (trigger?: HTMLElement | null) => void;
   onDismissGuideCard: () => void;
+  onDismissTip: (tipId: string) => void;
+  postUpdateIntent: boolean;
+  onSeeWhatsNew: () => void;
+  onDismissWhatsNew: () => void;
+  suppressTips?: boolean;
 }) {
   const today = new Date();
   const boardRef = useRef<HTMLDivElement>(null);
   const storageKey = `openwall-board-${snapshot.household.id}`;
   const [arranging, setArranging] = useState(false);
   const [trayOpen, setTrayOpen] = useState(false);
+  const [cardJustAdded, setCardJustAdded] = useState(false);
   const [editingCountdown, setEditingCountdown] = useState<BoardWidget | null>(null);
   const [widgets, setWidgets] = useState<BoardWidget[]>(() => {
     try {
@@ -741,6 +760,7 @@ function TodayBoard({
     setWidgets((current) => [...current, added]);
     setTrayOpen(false);
     setArranging(true);
+    setCardJustAdded(true);
   };
 
   const renderWidget = (widget: BoardWidget) => {
@@ -855,6 +875,13 @@ function TodayBoard({
     );
   };
 
+  const suppressBoardTips = suppressTips || trayOpen || Boolean(editingCountdown);
+  const showWhatsNew =
+    guideState.tourStatus !== "unseen" &&
+    (postUpdateIntent || !isReleaseSeen(guideState, LATEST_RELEASE.version));
+  const suppressBoardGuidance =
+    suppressBoardTips || guideState.tourStatus === "unseen" || showWhatsNew;
+
   return (
     <div className="corkboard-view">
       <header className="cork-toolbar">
@@ -865,7 +892,12 @@ function TodayBoard({
         <div className="toolbar-actions">
           <button
             className={arranging ? "arrange-button active" : "arrange-button"}
-            onClick={() => setArranging((value) => !value)}
+            onClick={() =>
+              setArranging((value) => {
+                if (value) setCardJustAdded(false);
+                return !value;
+              })
+            }
           >
             {arranging ? <Unlock /> : <Lock />}
             {arranging ? "Done arranging" : "Arrange"}
@@ -897,9 +929,40 @@ function TodayBoard({
           </button>
         ))}
       </div>
-      {guideState.tourStatus === "unseen" && (
+      {guideState.tourStatus === "unseen" ? (
         <GuideCard onStartTour={onStartTour} onDismiss={onDismissGuideCard} />
+      ) : (
+        showWhatsNew && (
+          <WhatsNewNotice
+            release={LATEST_RELEASE}
+            isPostUpdate={postUpdateIntent}
+            onSeeWhatsNew={onSeeWhatsNew}
+            onDismiss={onDismissWhatsNew}
+          />
+        )
       )}
+      {!suppressBoardGuidance &&
+      cardJustAdded &&
+      !isTipDismissed(guideState, TIP_IDS.CARD_ADDED) ? (
+        <CoachMark
+          tipId={TIP_IDS.CARD_ADDED}
+          kicker="Card added"
+          message="Your new card has been placed on the corkboard. While in Arrange mode, you can drag it into position, resize it, or lock it before finishing."
+          onDismiss={(tipId) => {
+            setCardJustAdded(false);
+            onDismissTip(tipId);
+          }}
+        />
+      ) : !suppressBoardGuidance &&
+        arranging &&
+        !isTipDismissed(guideState, TIP_IDS.ARRANGE_MODE) ? (
+        <CoachMark
+          tipId={TIP_IDS.ARRANGE_MODE}
+          kicker="Arrange mode"
+          message="Drag cards by their top grip to reposition them, resize from the bottom-right handle, or lock cards so family members won't move them."
+          onDismiss={onDismissTip}
+        />
+      ) : null}
       {arranging && (
         <div className="arrange-hint">
           <Grip /> Drag cards by their top edge. Resize from the lower corner. Lock the board when
@@ -1043,6 +1106,8 @@ function TodayBoard({
         <CountdownEditor
           widget={editingCountdown}
           householdTimezone={snapshot.household.timezone}
+          guideState={guideState}
+          onDismissTip={onDismissTip}
           onSave={(updated) => {
             updateWidget(updated.id, updated);
             setEditingCountdown(null);
@@ -1115,6 +1180,9 @@ function SettingsView({
   onHouseholdReset,
   notice,
   onStartTour,
+  guideState,
+  onDismissTip,
+  suppressTips = false,
 }: {
   snapshot: HouseholdSnapshot;
   onImport: (file: File) => void;
@@ -1122,6 +1190,9 @@ function SettingsView({
   onHouseholdReset: () => void;
   notice: Notice;
   onStartTour: (trigger?: HTMLElement | null) => void;
+  guideState: GuideState;
+  onDismissTip: (tipId: string) => void;
+  suppressTips?: boolean;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const exportData = () => {
@@ -1145,6 +1216,14 @@ function SettingsView({
           {notice.message}
         </div>
       )}
+      {!suppressTips && !isTipDismissed(guideState, TIP_IDS.SETTINGS_BACKUP) && (
+        <CoachMark
+          tipId={TIP_IDS.SETTINGS_BACKUP}
+          kicker="Backup & privacy"
+          message="OpenWall stores household members, schedules, and tasks on this device. The current backup protects those records, but not board layout or countdown cards."
+          onDismiss={onDismissTip}
+        />
+      )}
       <div className="settings-grid">
         <section className="settings-card">
           <div className="settings-icon">
@@ -1152,7 +1231,10 @@ function SettingsView({
           </div>
           <div>
             <h2>Back up your household</h2>
-            <p>Download a readable, versioned copy of schedules, people, and tasks.</p>
+            <p>
+              Download a readable, versioned copy of schedules, members, and tasks. (Board layout,
+              countdown clocks, and guide state remain stored on this device).
+            </p>
           </div>
           <button className="secondary-button" onClick={exportData}>
             <Download /> Export backup
@@ -1164,7 +1246,10 @@ function SettingsView({
           </div>
           <div>
             <h2>Restore from a backup</h2>
-            <p>OpenWall checks the file before asking to replace anything.</p>
+            <p>
+              OpenWall checks the file before replacing schedules, members, and tasks. (Board layout
+              and countdown clocks remain in local browser storage).
+            </p>
           </div>
           <input
             ref={fileRef}
@@ -1243,7 +1328,10 @@ function SettingsView({
           </div>
           <div>
             <h2>Erase this household</h2>
-            <p>Remove all locally stored household information from this browser.</p>
+            <p>
+              Remove household members, schedules, and tasks from this browser. Device-specific
+              Guide preferences may remain.
+            </p>
           </div>
           <button className="danger-button" onClick={onHouseholdReset}>
             <Trash2 /> Erase household
@@ -1257,6 +1345,8 @@ function SettingsView({
     </div>
   );
 }
+
+const PWA_POST_UPDATE_KEY = "openwall-pwa-post-update";
 
 export default function App() {
   const [snapshot, setSnapshot] = useState<HouseholdSnapshot | null>(null);
@@ -1280,6 +1370,52 @@ export default function App() {
   const [tourOpen, setTourOpen] = useState(false);
   const [tourTrigger, setTourTrigger] = useState<HTMLElement | null>(null);
   const [tourStep, setTourStep] = useState(0);
+  const [guideInitialTab, setGuideInitialTab] = useState<"articles" | "releases">("articles");
+  const [postUpdateIntent, setPostUpdateIntent] = useState<boolean>(() => {
+    if (typeof window === "undefined" || !window.sessionStorage) return false;
+    try {
+      const item = window.sessionStorage.getItem(PWA_POST_UPDATE_KEY);
+      if (item === "true") {
+        window.sessionStorage.removeItem(PWA_POST_UPDATE_KEY);
+        return true;
+      }
+    } catch {
+      // ignore
+    }
+    return false;
+  });
+
+  const handleDismissTip = (tipId: string) => {
+    const next = dismissTip(tipId);
+    setGuideState(next);
+  };
+
+  const handleSeeWhatsNew = () => {
+    const next = markReleaseSeen(LATEST_RELEASE.version);
+    setGuideState(next);
+    setPostUpdateIntent(false);
+    setGuideInitialTab("releases");
+    setView("guide");
+  };
+
+  const handleDismissWhatsNew = () => {
+    const next = markReleaseSeen(LATEST_RELEASE.version);
+    setGuideState(next);
+    setPostUpdateIntent(false);
+  };
+
+  const handlePwaUpdate = async () => {
+    if (typeof window !== "undefined" && window.sessionStorage) {
+      try {
+        window.sessionStorage.setItem(PWA_POST_UPDATE_KEY, "true");
+      } catch {
+        // ignore
+      }
+    }
+    if (update) {
+      await update();
+    }
+  };
 
   useEffect(() => {
     const handleTourEvent = (event: Event) => {
@@ -1585,11 +1721,26 @@ export default function App() {
       },
     });
 
+  const isAnyDialogOpen = tourOpen || Boolean(editor) || Boolean(confirm);
+
+  const showOfflineTip =
+    offlineReady &&
+    online &&
+    !isAnyDialogOpen &&
+    !isTipDismissed(guideState, TIP_IDS.OFFLINE_READY);
+
+  const suppressSubTips = isAnyDialogOpen || showOfflineTip;
+
   return (
     <div className="app-shell">
       <Sidebar
         view={view}
-        onView={setView}
+        onView={(nextView) => {
+          if (nextView !== "guide") {
+            setGuideInitialTab("articles");
+          }
+          setView(nextView);
+        }}
         compact={sidebarCompact}
         onToggle={() => setSidebarCompact((value) => !value)}
       />
@@ -1599,13 +1750,24 @@ export default function App() {
             <WifiOff /> Offline — your saved household is still available.
           </div>
         )}
-        {offlineReady && online && (
+        {offlineReady && online && !showOfflineTip && (
           <button className="toast success" onClick={() => setOfflineReady(false)}>
             <CheckCircle2 /> Ready to use offline <X />
           </button>
         )}
+        {showOfflineTip && (
+          <CoachMark
+            tipId={TIP_IDS.OFFLINE_READY}
+            kicker="Offline ready"
+            message="The OpenWall app shell is cached. Saved local features can reopen without an internet connection, subject to this browser’s storage behavior."
+            onDismiss={(tipId) => {
+              handleDismissTip(tipId);
+              setOfflineReady(false);
+            }}
+          />
+        )}
         {update && (
-          <button className="toast update" onClick={() => update()}>
+          <button className="toast update" onClick={handlePwaUpdate}>
             <Download /> A new version is ready. Refresh now.
           </button>
         )}
@@ -1619,6 +1781,11 @@ export default function App() {
             guideState={guideState}
             onStartTour={handleStartTour}
             onDismissGuideCard={handleDismissGuideCard}
+            onDismissTip={handleDismissTip}
+            postUpdateIntent={postUpdateIntent}
+            onSeeWhatsNew={handleSeeWhatsNew}
+            onDismissWhatsNew={handleDismissWhatsNew}
+            suppressTips={suppressSubTips}
           />
         ) : view === "guide" ? (
           <GuideView
@@ -1626,6 +1793,7 @@ export default function App() {
             onUpdateGuideState={setGuideState}
             onNavigate={setView}
             onStartTour={handleStartTour}
+            initialTab={guideInitialTab}
           />
         ) : (
           <SettingsView
@@ -1635,6 +1803,9 @@ export default function App() {
             onHouseholdReset={erase}
             notice={notice}
             onStartTour={handleStartTour}
+            guideState={guideState}
+            onDismissTip={handleDismissTip}
+            suppressTips={suppressSubTips}
           />
         )}
       </main>

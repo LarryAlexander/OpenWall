@@ -29,6 +29,7 @@ interface GuideViewProps {
   onUpdateGuideState: (state: GuideState) => void;
   onNavigate: (view: "today" | "settings") => void;
   onStartTour: (triggerElement?: HTMLElement | null, stepIndex?: number) => void;
+  initialTab?: GuideTab;
 }
 
 type GuideTab = "articles" | "releases";
@@ -38,10 +39,17 @@ export function GuideView({
   onUpdateGuideState,
   onNavigate,
   onStartTour,
+  initialTab,
 }: GuideViewProps) {
-  const [activeTab, setActiveTab] = useState<GuideTab>("articles");
+  const [activeTab, setActiveTab] = useState<GuideTab>(initialTab ?? "articles");
   const [searchQuery, setSearchQuery] = useState("");
   const [resetNotice, setResetNotice] = useState(false);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   // Initialize selectedCategory with persisted lastHelpCategory if valid
   const initialCategory: GuideCategoryId | "all" = useMemo(() => {
@@ -146,6 +154,8 @@ export function GuideView({
           <button
             type="button"
             role="tab"
+            id="guide-tab-articles"
+            aria-controls="guide-panel-articles"
             aria-selected={activeTab === "articles"}
             className={`guide-tab-btn ${activeTab === "articles" ? "active" : ""}`}
             onClick={() => setActiveTab("articles")}
@@ -156,6 +166,8 @@ export function GuideView({
           <button
             type="button"
             role="tab"
+            id="guide-tab-releases"
+            aria-controls="guide-panel-releases"
             aria-selected={activeTab === "releases"}
             className={`guide-tab-btn ${activeTab === "releases" ? "active" : ""}`}
             onClick={() => setActiveTab("releases")}
@@ -167,7 +179,12 @@ export function GuideView({
       </header>
 
       {activeTab === "articles" ? (
-        <section className="guide-articles-section">
+        <section
+          id="guide-panel-articles"
+          role="tabpanel"
+          aria-labelledby="guide-tab-articles"
+          className="guide-articles-section"
+        >
           <div className="guide-search-panel">
             <div className="guide-search-input-wrapper">
               <Search className="guide-search-icon" aria-hidden="true" />
@@ -255,7 +272,12 @@ export function GuideView({
           )}
         </section>
       ) : (
-        <section className="guide-releases-section">
+        <section
+          id="guide-panel-releases"
+          role="tabpanel"
+          aria-labelledby="guide-tab-releases"
+          className="guide-releases-section"
+        >
           <div className="guide-releases-intro">
             <h2>Release History & What’s New</h2>
             <p>

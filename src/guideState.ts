@@ -174,6 +174,34 @@ export function setLastHelpCategory(category: string | undefined): GuideState {
   }));
 }
 
+export const TIP_IDS = {
+  ARRANGE_MODE: "tip-arrange-mode",
+  CARD_ADDED: "tip-card-added",
+  COUNTDOWN_EDITOR: "tip-countdown-editor",
+  OFFLINE_READY: "tip-offline-ready",
+  SETTINGS_BACKUP: "tip-settings-backup",
+} as const;
+
+/**
+ * Dismiss a contextual coach mark by tipId and persist.
+ */
+export function dismissTip(tipId: string): GuideState {
+  return updateGuideState((current) => {
+    if (current.dismissedTipIds.includes(tipId)) return current;
+    return {
+      ...current,
+      dismissedTipIds: [...current.dismissedTipIds, tipId],
+    };
+  });
+}
+
+/**
+ * Check if a tip is dismissed.
+ */
+export function isTipDismissed(state: GuideState, tipId: string): boolean {
+  return state.dismissedTipIds.includes(tipId);
+}
+
 /**
  * Reset all dismissed tip IDs so tips can be seen again.
  */
@@ -195,4 +223,11 @@ export function markReleaseSeen(version: string): GuideState {
       seenReleaseVersions: [...current.seenReleaseVersions, version],
     };
   });
+}
+
+/**
+ * Check if a release note version has been seen.
+ */
+export function isReleaseSeen(state: GuideState, version: string): boolean {
+  return state.seenReleaseVersions.includes(version);
 }

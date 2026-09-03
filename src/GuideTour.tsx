@@ -119,11 +119,11 @@ const TOUR_STEPS: TourStep[] = [
     highlights: [
       {
         title: "100% local-first",
-        desc: "Your data is stored only in this browser's IndexedDB. It works completely offline even without internet.",
+        desc: "Members, schedules, and tasks use IndexedDB; board layout, countdowns, and Guide preferences use local browser storage. After the app shell is cached, these features remain available offline.",
       },
       {
         title: "Versioned backups",
-        desc: "Because clearing browser cookies or site data can erase local databases, export regular JSON backups in Settings.",
+        desc: "Export JSON backups in Settings to protect members, schedules, and tasks. (Board layout and countdown clocks stay in local browser storage).",
       },
       {
         title: "Safe restore",

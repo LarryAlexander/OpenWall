@@ -266,7 +266,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
     steps: [
       "After loading OpenWall once online, the application shell is cached on this device.",
       "Household members, schedule items, and tasks are saved in IndexedDB; board layout and countdown settings currently use separate local browser storage.",
-      "If your home internet drops, a gentle offline banner confirms that your saved board is still fully usable.",
+      "If your home internet drops after the app has been cached, a gentle banner confirms that saved local features remain available.",
       "You can continue adding, editing, and checking off tasks normally while offline.",
     ],
     action: {
@@ -286,7 +286,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
       "In modern browsers (Chrome, Edge, Safari), look for the 'Install OpenWall' or 'Add to Home Screen' option.",
       "Once installed, OpenWall opens in its own window without browser navigation toolbars.",
       "Tap the monitor icon in the top toolbar to trigger full-screen presentation mode for dedicated wall kiosks.",
-      "Old iPads or Android tablets plugged in near the kitchen counter make excellent permanent home displays.",
+      "An older tablet can be a useful home display when its browser supports the required PWA features and its power settings keep the screen available.",
     ],
     action: {
       type: "navigate",
@@ -300,7 +300,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
     id: "local-privacy-backup",
     title: "Exporting and safeguarding your data",
     summary:
-      "Because OpenWall stores data strictly in this browser, downloading regular JSON backups keeps your family plan safe.",
+      "Export the household records supported by the current backup format so they can be recovered after browser-data loss.",
     categoryId: "backup-restore-and-privacy",
     keywords: [
       "backup",
@@ -379,7 +379,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
     steps: [
       "If you cleared your browser's site data or used private browsing, local IndexedDB may be empty.",
       "Open Settings and locate the 'Restore from a backup' section.",
-      "Select your latest exported JSON file to restore your entire household instantly.",
+      "Select your latest exported JSON file to restore its household members, schedules, and tasks.",
       "Tip: To avoid accidental loss, add OpenWall to your browser's site-data exception list.",
     ],
     action: {
@@ -459,6 +459,8 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     ],
   },
 ];
+
+export const LATEST_RELEASE: ReleaseNote = RELEASE_NOTES[0];
 
 export const SUGGESTED_SEARCH_TOPICS: string[] = [
   "Countdown",

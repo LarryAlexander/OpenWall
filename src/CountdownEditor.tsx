@@ -7,11 +7,15 @@ import {
   parseIsoToPartsInTimezone,
   updateBoardWidgetWithCountdown,
 } from "./countdown";
-import type { BoardWidget, CountdownDisplayMode } from "./types";
+import { CoachMark } from "./CoachMark";
+import { isTipDismissed, TIP_IDS } from "./guideState";
+import type { BoardWidget, CountdownDisplayMode, GuideState } from "./types";
 
 interface CountdownEditorProps {
   widget: BoardWidget;
   householdTimezone: string;
+  guideState?: GuideState;
+  onDismissTip?: (tipId: string) => void;
   onSave: (updated: BoardWidget) => void;
   onDelete: (widgetId: string) => void;
   onClose: () => void;
@@ -37,6 +41,8 @@ const COMMON_TIMEZONES = [
 export function CountdownEditor({
   widget,
   householdTimezone,
+  guideState,
+  onDismissTip,
   onSave,
   onDelete,
   onClose,
@@ -95,6 +101,9 @@ export function CountdownEditor({
     onSave(updated);
   };
 
+  const showCoachMark =
+    guideState && onDismissTip && !isTipDismissed(guideState, TIP_IDS.COUNTDOWN_EDITOR);
+
   return (
     <div className="dialog-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div
@@ -111,6 +120,14 @@ export function CountdownEditor({
         </header>
 
         <form onSubmit={handleSubmit} className="editor-form">
+          {showCoachMark && (
+            <CoachMark
+              tipId={TIP_IDS.COUNTDOWN_EDITOR}
+              kicker="Countdown tip"
+              message="Countdowns are live clocks! You can set an exact target time, timezone, and auto-adaptive display styles."
+              onDismiss={onDismissTip}
+            />
+          )}
           <label>
             What are we counting down to?
             <input

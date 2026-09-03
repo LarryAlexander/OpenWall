@@ -3206,6 +3206,321 @@ fieldset {
   }
 }
 
+/* ==========================================================================
+   OpenWall Coach Marks & What’s New (Pass 3)
+   ========================================================================== */
+
+.coach-mark {
+  background: #fcf6e8;
+  border: 1.5px solid #ead6a5;
+  border-radius: 16px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 3px 12px rgba(78, 59, 28, 0.06);
+  animation: coachMarkSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes coachMarkSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.coach-mark-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.coach-mark-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #f8e7bf;
+  color: #785415;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.coach-mark-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.coach-mark-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.coach-mark-kicker {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #785415;
+}
+
+.coach-mark-message {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: #2b3832;
+}
+
+.coach-mark-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.coach-mark-dismiss-btn {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: #f2e2be;
+  border: 1px solid #dfc99a;
+  color: #583d0f;
+  font-size: 0.82rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.coach-mark-dismiss-btn:hover {
+  background: #ebd4a8;
+}
+
+.coach-mark-close-btn {
+  width: 30px;
+  height: 30px;
+  color: #7b6237;
+}
+
+.coach-mark-action-btn {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #785415;
+}
+
+/* What's New Notice */
+.whats-new-notice {
+  max-width: 1800px;
+  margin: 0 auto 16px;
+  background: #f3f8f5;
+  border: 1.5px solid #bedad0;
+  border-radius: 18px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  box-shadow: 0 3px 14px rgba(35, 60, 50, 0.06);
+  animation: coachMarkSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.whats-new-notice.is-post-update {
+  background: #eef7f2;
+  border-color: #92caa5;
+}
+
+.whats-new-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.whats-new-icon-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #dbeef0;
+  color: var(--green);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.whats-new-icon-badge svg {
+  width: 20px;
+  height: 20px;
+}
+
+.whats-new-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.whats-new-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--green);
+}
+
+.whats-new-pill {
+  background: #d8ece4;
+  color: var(--green-dark);
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+}
+
+.whats-new-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.whats-new-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.whats-new-see-btn {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 12px;
+  font-size: 0.86rem;
+  gap: 6px;
+}
+
+.whats-new-dismiss-btn {
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(47, 93, 80, 0.2);
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 0.84rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.whats-new-dismiss-btn:hover {
+  background: rgba(47, 93, 80, 0.08);
+  color: var(--ink);
+}
+
+/* Responsive adjustments for CoachMark and WhatsNewNotice */
+@media (max-width: 768px) {
+  .coach-mark {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+  }
+  .coach-mark-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .whats-new-notice {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px;
+  }
+  .whats-new-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+/* Dark mode overrides for CoachMark & WhatsNewNotice */
+@media (prefers-color-scheme: dark) {
+  .coach-mark {
+    background: #2b271b;
+    border-color: #4b422a;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+  }
+  .coach-mark-icon {
+    background: #3c341f;
+    color: #e5cd8d;
+  }
+  .coach-mark-kicker {
+    color: #dfbe73;
+  }
+  .coach-mark-message {
+    color: #f4f1e9;
+  }
+  .coach-mark-dismiss-btn {
+    background: #3c341f;
+    border-color: #554a2c;
+    color: #e5cd8d;
+  }
+  .coach-mark-dismiss-btn:hover {
+    background: #4a4128;
+  }
+  .coach-mark-close-btn {
+    color: #baa472;
+  }
+  .whats-new-notice {
+    background: #24342d;
+    border-color: #385549;
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.3);
+  }
+  .whats-new-notice.is-post-update {
+    background: #20352b;
+    border-color: #46705d;
+  }
+  .whats-new-icon-badge {
+    background: #1b2823;
+    color: #92d4bd;
+  }
+  .whats-new-kicker {
+    color: #92d4bd;
+  }
+  .whats-new-pill {
+    background: #2e473d;
+    color: #b7e3d2;
+  }
+  .whats-new-title {
+    color: #f4f1e9;
+  }
+  .whats-new-dismiss-btn {
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #b7bdb7;
+  }
+  .whats-new-dismiss-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #f4f1e9;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
