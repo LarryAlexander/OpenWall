@@ -163,3 +163,36 @@ export function requestGuideTour(detail?: StartTourEventDetail): void {
 }
 
 export const startGuideTour = requestGuideTour;
+
+/**
+ * Persist the last browsed help category in guideState.
+ */
+export function setLastHelpCategory(category: string | undefined): GuideState {
+  return updateGuideState((current) => ({
+    ...current,
+    lastHelpCategory: category,
+  }));
+}
+
+/**
+ * Reset all dismissed tip IDs so tips can be seen again.
+ */
+export function resetDismissedTips(): GuideState {
+  return updateGuideState((current) => ({
+    ...current,
+    dismissedTipIds: [],
+  }));
+}
+
+/**
+ * Mark a release note version as seen.
+ */
+export function markReleaseSeen(version: string): GuideState {
+  return updateGuideState((current) => {
+    if (current.seenReleaseVersions.includes(version)) return current;
+    return {
+      ...current,
+      seenReleaseVersions: [...current.seenReleaseVersions, version],
+    };
+  });
+}

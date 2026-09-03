@@ -2541,6 +2541,671 @@ fieldset {
   }
 }
 
+/* ==========================================================================
+   OpenWall Guide View (Pass 2)
+   ========================================================================== */
+
+.guide-view {
+  padding: clamp(32px, 4vw, 70px);
+  max-width: 1800px;
+  margin: auto;
+}
+
+.guide-view-header {
+  margin-bottom: 36px;
+}
+
+.guide-header-title-block h1 {
+  font-size: clamp(2.4rem, 4.5vw, 4.5rem);
+  line-height: 1;
+  margin-bottom: 0;
+  margin-top: 6px;
+}
+
+.guide-view-lede {
+  color: var(--ink-muted);
+  font-size: 1.15rem;
+  line-height: 1.45;
+  margin: 14px 0 0;
+  max-width: 780px;
+}
+
+.guide-header-status-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 12px 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  flex-wrap: wrap;
+}
+
+.guide-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--green);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.guide-status-badge svg {
+  width: 17px;
+  height: 17px;
+}
+
+.guide-quick-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.guide-btn-sm {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 0.84rem;
+  gap: 7px;
+}
+
+.guide-btn-sm svg {
+  width: 15px;
+  height: 15px;
+}
+
+.guide-toast-notice {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Guide Tab Navigation */
+.guide-tab-nav {
+  display: flex;
+  gap: 10px;
+  margin-top: 26px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 2px;
+}
+
+.guide-tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 10px 18px 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.guide-tab-btn:hover {
+  color: var(--ink);
+}
+
+.guide-tab-btn.active {
+  color: var(--green);
+  border-bottom-color: var(--green);
+}
+
+.guide-tab-btn svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* Search Panel */
+.guide-search-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 20px 22px;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 20px rgba(42, 50, 44, 0.04);
+}
+
+.guide-search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.guide-search-icon {
+  position: absolute;
+  left: 16px;
+  width: 19px;
+  height: 19px;
+  color: var(--ink-muted);
+  pointer-events: none;
+}
+
+.guide-search-input {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 44px 0 46px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--canvas);
+  color: var(--ink);
+  font-size: 1rem;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.guide-search-input:focus {
+  border-color: var(--green);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(47, 93, 80, 0.18);
+}
+
+.guide-search-clear {
+  position: absolute;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+}
+
+.guide-search-clear svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Category Chips */
+.guide-category-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.guide-chip {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--canvas);
+  color: var(--ink-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.guide-chip:hover {
+  background: var(--surface-muted);
+  color: var(--ink);
+}
+
+.guide-chip.is-selected {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+  box-shadow: 0 2px 8px rgba(47, 93, 80, 0.22);
+}
+
+/* Results Header */
+.guide-results-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.guide-results-header h2 {
+  font-size: 1.6rem;
+  margin: 0;
+  color: var(--ink);
+}
+
+.guide-category-desc {
+  margin: 4px 0 0;
+  color: var(--ink-muted);
+  font-size: 0.94rem;
+}
+
+.guide-results-count {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Articles Grid */
+.guide-articles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 22px;
+}
+
+.guide-article-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 18px rgba(42, 50, 44, 0.05);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.guide-article-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(42, 50, 44, 0.09);
+}
+
+.guide-article-category-pill {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--green);
+  margin-bottom: 8px;
+}
+
+.guide-article-card h3 {
+  font-family: inherit;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 8px;
+  line-height: 1.3;
+}
+
+.guide-article-summary {
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  margin: 0 0 16px;
+}
+
+.guide-article-steps {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.guide-article-steps h4 {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+  margin: 0 0 10px;
+}
+
+.guide-article-steps ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.guide-article-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.86rem;
+  line-height: 1.42;
+  color: var(--ink);
+}
+
+.guide-step-number {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface-muted);
+  color: var(--green-dark);
+  font-size: 0.75rem;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.guide-article-footer {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.guide-action-btn {
+  width: 100%;
+  min-height: 42px;
+  font-size: 0.86rem;
+  border-radius: 12px;
+  gap: 8px;
+}
+
+.guide-action-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Empty Search State */
+.guide-empty-search {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 42px 24px;
+  text-align: center;
+  max-width: 600px;
+  margin: 20px auto;
+}
+
+.guide-empty-icon {
+  width: 44px;
+  height: 44px;
+  color: var(--ink-muted);
+  margin-bottom: 12px;
+}
+
+.guide-empty-search h3 {
+  font-size: 1.3rem;
+  margin: 0 0 8px;
+}
+
+.guide-empty-search p {
+  color: var(--ink-muted);
+  font-size: 0.92rem;
+  margin: 0 0 18px;
+}
+
+.guide-suggested-topics {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.guide-suggestion-chip {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--canvas);
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.guide-suggestion-chip:hover {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+}
+
+/* Release History Section */
+.guide-releases-intro {
+  margin-bottom: 24px;
+}
+
+.guide-releases-intro h2 {
+  font-size: 1.8rem;
+  margin: 0 0 8px;
+}
+
+.guide-releases-intro p {
+  color: var(--ink-muted);
+  font-size: 1rem;
+  margin: 0;
+}
+
+.guide-releases-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.guide-release-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 28px 30px;
+  box-shadow: 0 6px 24px rgba(42, 50, 44, 0.05);
+}
+
+.guide-release-badge-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.guide-version-tag {
+  background: var(--green);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+}
+
+.guide-release-date {
+  font-size: 0.84rem;
+  color: var(--ink-muted);
+}
+
+.guide-current-badge {
+  background: #fdf6e2;
+  color: #6a4f15;
+  border: 1px solid #ebd9a8;
+  font-weight: 700;
+  font-size: 0.74rem;
+  padding: 3px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.guide-release-card h3 {
+  font-family: inherit;
+  font-size: 1.45rem;
+  margin: 0 0 10px;
+  color: var(--ink);
+}
+
+.guide-release-summary {
+  font-size: 0.96rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+  margin: 0 0 20px;
+}
+
+.guide-release-highlights {
+  background: var(--canvas);
+  border-radius: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  margin-bottom: 20px;
+}
+
+.guide-release-highlights h4 {
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+  margin: 0 0 12px;
+}
+
+.guide-release-highlights ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.guide-release-highlights li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.guide-release-highlights li svg {
+  width: 16px;
+  height: 16px;
+  color: var(--green);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.guide-release-related h4 {
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+  margin: 0 0 12px;
+}
+
+.guide-related-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.guide-related-btn {
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.guide-related-btn:hover {
+  background: var(--surface);
+  color: var(--green);
+  border-color: var(--green);
+}
+
+/* Responsive adjustments for GuideView */
+@media (max-width: 768px) {
+  .guide-view {
+    padding: 24px 16px 40px;
+  }
+  .guide-articles-grid {
+    grid-template-columns: 1fr;
+  }
+  .guide-header-status-strip {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .guide-quick-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .guide-btn-sm {
+    width: 100%;
+    justify-content: center;
+  }
+  .guide-tab-nav {
+    overflow-x: auto;
+  }
+}
+
+/* Dark mode overrides for GuideView */
+@media (prefers-color-scheme: dark) {
+  .guide-header-status-strip {
+    background: #28332f;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  .guide-search-panel {
+    background: #28332f;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  .guide-search-input {
+    background: #202a27;
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  .guide-chip {
+    background: #202a27;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #b7bdb7;
+  }
+  .guide-chip:hover {
+    background: #34403b;
+    color: #f4f1e9;
+  }
+  .guide-chip.is-selected {
+    background: #3a6b5c;
+    color: #fff;
+  }
+  .guide-article-card {
+    background: #28332f;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  .guide-step-number {
+    background: #202a27;
+    color: #92d4bd;
+  }
+  .guide-empty-search {
+    background: #28332f;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  .guide-suggestion-chip {
+    background: #202a27;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #f4f1e9;
+  }
+  .guide-release-card {
+    background: #28332f;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  .guide-current-badge {
+    background: #373322;
+    color: #e5cd8d;
+    border-color: #554d32;
+  }
+  .guide-release-highlights {
+    background: #202a27;
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  .guide-related-btn {
+    background: #202a27;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #f4f1e9;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

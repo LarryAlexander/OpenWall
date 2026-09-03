@@ -39,6 +39,7 @@ import { formatDate as format, isSameDay, parseISO } from "./date";
 import { repository } from "./db";
 import { GuideCard } from "./GuideCard";
 import { GuideTour } from "./GuideTour";
+import { GuideView } from "./GuideView";
 import {
   completeTour,
   dismissTour,
@@ -59,7 +60,7 @@ import type {
   ScheduleItem,
 } from "./types";
 
-type View = "today" | "settings";
+type View = "today" | "settings" | "guide";
 type Notice = { tone: "success" | "warning" | "error"; message: string } | null;
 
 const todayInput = () => format(new Date(), "yyyy-MM-dd");
@@ -276,6 +277,10 @@ function Sidebar({
         </button>
       </nav>
       <div className="sidebar-bottom">
+        <button className={view === "guide" ? "active" : ""} onClick={() => onView("guide")}>
+          <Compass />
+          <span>Guide</span>
+        </button>
         <button className={view === "settings" ? "active" : ""} onClick={() => onView("settings")}>
           <Settings />
           <span>Settings</span>
@@ -1614,6 +1619,13 @@ export default function App() {
             guideState={guideState}
             onStartTour={handleStartTour}
             onDismissGuideCard={handleDismissGuideCard}
+          />
+        ) : view === "guide" ? (
+          <GuideView
+            guideState={guideState}
+            onUpdateGuideState={setGuideState}
+            onNavigate={setView}
+            onStartTour={handleStartTour}
           />
         ) : (
           <SettingsView

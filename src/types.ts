@@ -99,3 +99,46 @@ export interface GuideState {
   seenReleaseVersions: string[];
   lastHelpCategory?: string;
 }
+
+export type GuideCategoryId =
+  | "getting-started"
+  | "cards-and-countdowns"
+  | "arranging-the-board"
+  | "household-members-and-filters"
+  | "offline-use-and-installation"
+  | "backup-restore-and-privacy"
+  | "troubleshooting";
+
+export interface GuideCategory {
+  id: GuideCategoryId;
+  title: string;
+  description: string;
+}
+
+export type GuideActionType = "tour" | "tour-step" | "navigate";
+
+export interface GuideAction {
+  type: GuideActionType;
+  label: string;
+  stepIndex?: number;
+  targetView?: "today" | "settings";
+}
+
+export interface GuideArticle {
+  id: string;
+  title: string;
+  summary: string;
+  categoryId: GuideCategoryId;
+  keywords: string[];
+  steps: string[];
+  action?: GuideAction;
+}
+
+export interface ReleaseNote {
+  version: string;
+  releasedAt: string;
+  title: string;
+  summary: string;
+  highlights: string[];
+  relatedArticleIds: string[];
+}
