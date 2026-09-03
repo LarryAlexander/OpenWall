@@ -11,7 +11,7 @@
 - OpenWall is a greenfield, open-source, offline-first family-dashboard concept.
 - It is planned as a conventional web PWA, not a Flutter application.
 - The public GitHub Pages demo will be a static client; MVP household data will remain in the current browser profile.
-- A local application and production build now exist. No public repository, deployment, household validation, or final brand currently exists.
+- A local application, public repository, and GitHub Pages deployment now exist. Household validation and final brand clearance remain outstanding.
 
 ## Work completed
 
@@ -22,11 +22,12 @@
 - Completed a proportional commercial-feasibility baseline.
 - Implemented onboarding, sample data, a freeform Today corkboard, movable/resizable/lockable cards, an add-card tray, member filters, schedule and task editing, task completion, settings, backup/restore, local reset, responsive reading layouts, dark mode, and PWA packaging.
 - Added Apache-2.0 licensing, contributor and security policies, dependency provenance, continuous integration, and an opt-in Pages deployment workflow.
+- Published the public `LarryAlexander/OpenWall` repository and deployed the static demo through GitHub Pages.
 
 ## Evidence and verification
 
 - **Performed:** production TypeScript build; lint; unit coverage of backups and IndexedDB repository behavior; end-to-end setup, sample, persistence, tasks, settings, erase-confirmation, add-card, and safe-arrangement flows across 1920×1080, 1280×800, tablet, and phone browser profiles; visual inspection of welcome, populated corkboard, and responsive states.
-- **Not performed:** user interviews, physical wall-device testing, full assistive-technology audit, public GitHub repository creation, GitHub Pages deployment, name/trademark search, or legal review.
+- **Not performed:** user interviews, physical wall-device testing, full assistive-technology audit, name/trademark search, or legal review.
 
 ## Filled assumptions
 
@@ -39,7 +40,7 @@
 
 1. Conduct the planned household usability sessions.
 2. Decide whether validation findings require interface changes before publication.
-3. Explicitly authorize public repository creation and Pages activation when ready.
+3. Review validation findings before labeling the project production-ready.
 
 ## Launch, marketing, and operations
 
@@ -79,4 +80,4 @@ Test the implemented freeform corkboard experience with 5–8 household organize
 
 ## Human-only action
 
-Authorize public GitHub repository creation and Pages activation after the validation findings are reviewed.
+Run household and physical-device testing, then decide whether the project is ready to move beyond its public prototype label.

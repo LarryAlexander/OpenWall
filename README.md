@@ -4,7 +4,7 @@ OpenWall is an open-source, offline-first family dashboard that runs on hardware
 
 The first release is intentionally small: a household can arrange a freeform corkboard of useful cards, see today's shared schedule, assign simple tasks, and keep using the board after the network disappears. No account, subscription, or vendor-owned display is required.
 
-> Project status: local MVP implemented and under validation. It has not been published or deployed.
+> Project status: public MVP deployed on GitHub Pages and awaiting household validation.
 
 ## Product promise
 
@@ -58,4 +58,4 @@ Run the complete local verification suite with `pnpm lint`, `pnpm test`, `pnpm b
 
 ## Current decision gate
 
-The implemented MVP remains a **conditional go** until the Today-board experience is tested with households. Public repository creation and GitHub Pages activation are intentionally separate owner-approved steps.
+The implemented MVP remains a **conditional go** until the corkboard experience is tested with households. The repository and Pages demo are public; household validation is the next evidence gate.
