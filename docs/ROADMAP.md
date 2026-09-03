@@ -131,6 +131,13 @@ See [Next Phase: A Living Household Board](NEXT_PHASE.md) for the functional and
 - reduced motion and high contrast
 - plain-language household roles without assuming family structure
 
+### Product education and claim integrity
+
+- optional onboarding, contextual tips, searchable help, and release education
+- device-local dismissal state with no telemetry
+- classify guidance as available, limited, planned, or device-dependent
+- audit plausible but misleading claims before every public release
+
 ### Open-source health
 
 - license and contributor guide

@@ -21,6 +21,8 @@
 - Proposed a staged roadmap through optional sync, integrations, and assistance.
 - Completed a proportional commercial-feasibility baseline.
 - Implemented onboarding, sample data, a freeform Today corkboard, movable/resizable/lockable cards, an add-card tray, member filters, schedule and task editing, task completion, settings, backup/restore, local reset, responsive reading layouts, dark mode, and PWA packaging.
+- Implemented the optional OpenWall Guide tour, searchable offline help, release history, one-time contextual coach marks, PWA post-update education, and device-local guide preferences.
+- Added explicit guidance truth guardrails covering backup boundaries, browser storage, offline prerequisites, device-dependent installation, placeholder cards, and unvalidated product claims.
 - Added Apache-2.0 licensing, contributor and security policies, dependency provenance, continuous integration, and an opt-in Pages deployment workflow.
 - Published the public `LarryAlexander/OpenWall` repository and deployed the static demo through GitHub Pages.
 
