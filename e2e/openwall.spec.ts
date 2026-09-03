@@ -27,6 +27,17 @@ test("creates a blank household and adds a task", async ({ page }) => {
   await expect(page.getByText("Test the wall")).toBeVisible();
 });
 
+test("adds a card and enters safe arrange mode", async ({ page }) => {
+  await page.getByRole("button", { name: /explore a sample home/i }).click();
+  await page.getByRole("button", { name: "Add to board" }).click();
+  await page.getByRole("button", { name: /sticky note/i }).click();
+  await expect(page.getByText("Add your note here")).toBeVisible();
+
+  await page.getByRole("button", { name: "Arrange" }).click();
+  await expect(page.getByRole("button", { name: /move note card/i })).toBeVisible();
+  await expect(page.getByText(/drag cards by their top edge/i)).toBeVisible();
+});
+
 test("shows settings and requires confirmation before erase", async ({ page }) => {
   await page.getByRole("button", { name: /explore a sample home/i }).click();
   await page.getByRole("button", { name: "Settings" }).click();

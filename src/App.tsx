@@ -1,32 +1,37 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   CalendarDays,
-  Check,
   CheckCircle2,
   ChevronRight,
   Circle,
-  Clock3,
   Download,
+  Grip,
   Home,
+  Image,
   Leaf,
+  LayoutDashboard,
   ListChecks,
+  Lock,
   Menu,
   Monitor,
   Moon,
-  Pencil,
   Plus,
   RotateCcw,
   Settings,
   ShieldCheck,
+  StickyNote,
   Sun,
+  Timer,
   Trash2,
+  Unlock,
   Upload,
+  Utensils,
   Users,
   WifiOff,
   X,
 } from "lucide-react";
-import { format, isSameDay, parseISO } from "date-fns";
 import { parseBackup, serializeBackup } from "./backup";
+import { formatDate as format, isSameDay, parseISO } from "./date";
 import { repository } from "./db";
 import { createHousehold, createSampleHousehold } from "./sample";
 import type {
@@ -548,6 +553,57 @@ function Dialog({
   );
 }
 
+type BoardWidgetType = "welcome" | "schedule" | "tasks" | "note" | "countdown" | "meal" | "photo";
+
+type BoardWidget = {
+  id: string;
+  type: BoardWidgetType;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  tilt: number;
+  text?: string;
+  locked?: boolean;
+};
+
+const defaultBoardWidgets: BoardWidget[] = [
+  { id: "welcome", type: "welcome", x: 2, y: 2, w: 40, h: 18, tilt: -0.3, locked: true },
+  { id: "schedule", type: "schedule", x: 2, y: 23, w: 51, h: 70, tilt: 0 },
+  { id: "tasks", type: "tasks", x: 55, y: 7, w: 29, h: 50, tilt: 0.35 },
+  {
+    id: "note",
+    type: "note",
+    x: 85,
+    y: 10,
+    w: 13,
+    h: 29,
+    tilt: 1.2,
+    text: "Library books back by Friday",
+  },
+  {
+    id: "meal",
+    type: "meal",
+    x: 57,
+    y: 61,
+    w: 25,
+    h: 28,
+    tilt: -0.45,
+    text: "Taco night\n6:30 PM",
+  },
+  {
+    id: "countdown",
+    type: "countdown",
+    x: 84,
+    y: 45,
+    w: 14,
+    h: 25,
+    tilt: 0.7,
+    text: "12 days\nuntil the beach",
+  },
+  { id: "photo", type: "photo", x: 84, y: 73, w: 14, h: 22, tilt: -1.1 },
+];
+
 function TodayBoard({
   snapshot,
   filterId,
@@ -562,6 +618,18 @@ function TodayBoard({
   onComplete: (task: HouseholdTask) => void;
 }) {
   const today = new Date();
+  const boardRef = useRef<HTMLDivElement>(null);
+  const storageKey = `openwall-board-${snapshot.household.id}`;
+  const [arranging, setArranging] = useState(false);
+  const [trayOpen, setTrayOpen] = useState(false);
+  const [widgets, setWidgets] = useState<BoardWidget[]>(() => {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      return stored ? (JSON.parse(stored) as BoardWidget[]) : defaultBoardWidgets;
+    } catch {
+      return defaultBoardWidgets;
+    }
+  });
   const events = snapshot.scheduleItems.filter(
     (item) =>
       isSameDay(parseISO(item.startsAt), today) && (!filterId || item.memberIds.includes(filterId)),
@@ -575,31 +643,207 @@ function TodayBoard({
     .sort((a, b) => Number(Boolean(a.completedAt)) - Number(Boolean(b.completedAt)));
   const next = events.find((item) => parseISO(item.endsAt) > today);
 
-  return (
-    <div className="board-view">
-      <header className="board-header">
-        <div>
+  useEffect(() => {
+    localStorage.setItem(storageKey, JSON.stringify(widgets));
+  }, [storageKey, widgets]);
+
+  const updateWidget = (widgetId: string, patch: Partial<BoardWidget>) =>
+    setWidgets((current) =>
+      current.map((widget) => (widget.id === widgetId ? { ...widget, ...patch } : widget)),
+    );
+
+  const beginMove = (event: React.PointerEvent, widget: BoardWidget, resizing = false) => {
+    if (!arranging || widget.locked || !boardRef.current) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const board = boardRef.current.getBoundingClientRect();
+    const start = { pointerX: event.clientX, pointerY: event.clientY, ...widget };
+    const move = (moveEvent: PointerEvent) => {
+      const dx = ((moveEvent.clientX - start.pointerX) / board.width) * 100;
+      const dy = ((moveEvent.clientY - start.pointerY) / board.height) * 100;
+      if (resizing) {
+        updateWidget(widget.id, {
+          w: Math.max(12, Math.min(96 - widget.x, start.w + dx)),
+          h: Math.max(18, Math.min(98 - widget.y, start.h + dy)),
+        });
+      } else {
+        updateWidget(widget.id, {
+          x: Math.max(0, Math.min(100 - widget.w, start.x + dx)),
+          y: Math.max(0, Math.min(100 - widget.h, start.y + dy)),
+        });
+      }
+    };
+    const stop = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", stop);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", stop);
+  };
+
+  const addWidget = (type: BoardWidgetType) => {
+    const defaults: Record<BoardWidgetType, Pick<BoardWidget, "w" | "h" | "text">> = {
+      welcome: { w: 38, h: 18 },
+      schedule: { w: 45, h: 58 },
+      tasks: { w: 28, h: 43 },
+      note: { w: 17, h: 26, text: "Tap edit and write a note" },
+      countdown: { w: 17, h: 23, text: "30 days\nuntil something good" },
+      meal: { w: 22, h: 25, text: "Tonight’s dinner\nAdd a plan" },
+      photo: { w: 18, h: 25 },
+    };
+    const added = {
+      id: `${type}-${crypto.randomUUID()}`,
+      type,
+      x: 40 + (widgets.length % 4) * 4,
+      y: 28 + (widgets.length % 5) * 5,
+      tilt: type === "note" ? -1.1 : 0,
+      ...defaults[type],
+    };
+    setWidgets((current) => [...current, added]);
+    setTrayOpen(false);
+    setArranging(true);
+  };
+
+  const renderWidget = (widget: BoardWidget) => {
+    if (widget.type === "welcome")
+      return (
+        <div className="cork-welcome">
           <p className="eyebrow">{snapshot.household.name}</p>
-          <h1>
-            {format(today, "EEEE")}, <span>{format(today, "MMMM d")}</span>
-          </h1>
+          <h1>{format(today, "EEEE")}</h1>
+          <p>
+            {format(today, "MMMM d")} <span>·</span> {format(today, "h:mm a")}
+          </p>
         </div>
-        <div className="header-status">
-          <span className="time-now">
-            <Clock3 />
-            {format(today, "h:mm a")}
-          </span>
+      );
+    if (widget.type === "schedule")
+      return (
+        <>
+          <WidgetHeading
+            kicker="Schedule"
+            title="Today’s rhythm"
+            icon={<CalendarDays />}
+            onAdd={() => onEdit({ kind: "event" })}
+          />
+          {events.length ? (
+            <div className="mini-timeline">
+              {events.map((item) => {
+                const firstMember = getMember(item.memberIds[0], snapshot.members);
+                return (
+                  <button key={item.id} onClick={() => onEdit({ kind: "event", value: item })}>
+                    <time>{format(parseISO(item.startsAt), "h:mm")}</time>
+                    <span className={`pin-dot color-${firstMember?.colorToken ?? "sage"}`} />
+                    <span>
+                      <strong>{item.title}</strong>
+                      {item.notes && <small>{item.notes}</small>}
+                    </span>
+                    {next?.id === item.id && <em>Next</em>}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyState
+              icon={<CalendarDays />}
+              title="A quiet day"
+              body="Nothing is scheduled."
+              action="Add one"
+              onAction={() => onEdit({ kind: "event" })}
+            />
+          )}
+        </>
+      );
+    if (widget.type === "tasks")
+      return (
+        <>
+          <WidgetHeading
+            kicker="To do"
+            title="Little things"
+            icon={<ListChecks />}
+            onAdd={() => onEdit({ kind: "task" })}
+          />
+          <p className="task-progress">
+            {tasks.filter((task) => task.completedAt).length} of {tasks.length} finished
+          </p>
+          <div className="cork-task-list">
+            {tasks.slice(0, 5).map((task) => (
+              <button
+                key={task.id}
+                onClick={() => onComplete(task)}
+                className={task.completedAt ? "completed" : ""}
+                aria-label={`${task.completedAt ? "Mark incomplete" : "Complete"} ${task.title}`}
+              >
+                {task.completedAt ? <CheckCircle2 /> : <Circle />}
+                <span>{task.title}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      );
+    if (widget.type === "note")
+      return (
+        <div className="sticky-content">
+          <StickyNote />
+          <span>DON’T FORGET</span>
+          <p>{widget.text}</p>
+        </div>
+      );
+    if (widget.type === "meal")
+      return (
+        <div className="simple-widget meal-widget">
+          <Utensils />
+          <span>Tonight</span>
+          <p>{widget.text}</p>
+        </div>
+      );
+    if (widget.type === "countdown")
+      return (
+        <div className="simple-widget countdown-widget">
+          <Timer />
+          <p>{widget.text}</p>
+        </div>
+      );
+    return (
+      <div className="photo-widget">
+        <div className="photo-sky">
+          <Sun />
+          <span />
+          <span />
+        </div>
+        <p>Our favorite place</p>
+      </div>
+    );
+  };
+
+  return (
+    <div className="corkboard-view">
+      <header className="cork-toolbar">
+        <div>
+          <p className="eyebrow">Open corkboard</p>
+          <h1>Your household, your way.</h1>
+        </div>
+        <div className="toolbar-actions">
           <button
-            className="glance-button"
-            onClick={() => document.documentElement.requestFullscreen?.()}
+            className={arranging ? "arrange-button active" : "arrange-button"}
+            onClick={() => setArranging((value) => !value)}
           >
-            <Monitor /> Full screen
+            {arranging ? <Unlock /> : <Lock />}
+            {arranging ? "Done arranging" : "Arrange"}
+          </button>
+          <button className="primary-button" onClick={() => setTrayOpen(true)}>
+            <Plus /> Add to board
+          </button>
+          <button
+            className="icon-button toolbar-fullscreen"
+            onClick={() => document.documentElement.requestFullscreen?.()}
+            aria-label="Open full screen"
+          >
+            <Monitor />
           </button>
         </div>
       </header>
-      <div className="member-filters" aria-label="Filter by household member">
+      <div className="board-people" aria-label="Filter board by household member">
         <button className={!filterId ? "selected" : ""} onClick={() => onFilter(null)}>
-          <Users /> Everyone
+          <Users /> All
         </button>
         {snapshot.members.map((member) => (
           <button
@@ -612,138 +856,170 @@ function TodayBoard({
           </button>
         ))}
       </div>
-      <div className="board-grid">
-        <section className="agenda-panel" aria-labelledby="agenda-title">
-          <div className="section-heading">
-            <div>
-              <p className="section-kicker">Schedule</p>
-              <h2 id="agenda-title">Today’s rhythm</h2>
-            </div>
-            <button
-              className="round-add"
-              onClick={() => onEdit({ kind: "event" })}
-              aria-label="Add schedule item"
-            >
-              <Plus />
-            </button>
-          </div>
-          {events.length ? (
-            <div className="timeline">
-              {events.map((item) => {
-                const firstMember = getMember(item.memberIds[0], snapshot.members);
-                return (
-                  <article
-                    className={`event-card ${next?.id === item.id ? "event-next" : ""}`}
-                    key={item.id}
-                  >
-                    <time>
-                      {format(parseISO(item.startsAt), "h:mm")}
-                      <small>{format(parseISO(item.startsAt), "a")}</small>
-                    </time>
-                    <span className={`timeline-dot color-${firstMember?.colorToken ?? "sage"}`} />
-                    <div className="event-body">
-                      <div className="event-top">
-                        <h3>{item.title}</h3>
-                        {next?.id === item.id && <span className="up-next">Up next</span>}
-                      </div>
-                      {item.notes && <p>{item.notes}</p>}
-                      <div className="assigned">
-                        {item.memberIds.length ? (
-                          item.memberIds.map((memberId) => {
-                            const member = getMember(memberId, snapshot.members);
-                            return member ? <Avatar member={member} small key={memberId} /> : null;
-                          })
-                        ) : (
-                          <span>Everyone</span>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      className="icon-button edit-button"
-                      onClick={() => onEdit({ kind: "event", value: item })}
-                      aria-label={`Edit ${item.title}`}
-                    >
-                      <Pencil />
-                    </button>
-                  </article>
-                );
-              })}
-            </div>
-          ) : (
-            <EmptyState
-              icon={<CalendarDays />}
-              title="A quiet day"
-              body="Nothing is on the schedule yet."
-              action="Add the first item"
-              onAction={() => onEdit({ kind: "event" })}
-            />
-          )}
-        </section>
-        <section className="tasks-panel" aria-labelledby="tasks-title">
-          <div className="section-heading">
-            <div>
-              <p className="section-kicker">Household</p>
-              <h2 id="tasks-title">Little things, shared</h2>
-            </div>
-            <button
-              className="round-add dark"
-              onClick={() => onEdit({ kind: "task" })}
-              aria-label="Add task"
-            >
-              <Plus />
-            </button>
-          </div>
-          <p className="task-progress">
-            {tasks.filter((task) => task.completedAt).length} of {tasks.length} finished today
-          </p>
-          {tasks.length ? (
-            <div className="task-list">
-              {tasks.map((task) => (
-                <article
-                  className={`task-card ${task.completedAt ? "completed" : ""}`}
-                  key={task.id}
+      {arranging && (
+        <div className="arrange-hint">
+          <Grip /> Drag cards by their top edge. Resize from the lower corner. Lock the board when
+          it feels right.
+        </div>
+      )}
+      <div className={`open-corkboard ${arranging ? "is-arranging" : ""}`} ref={boardRef}>
+        <div className="cork-grain" />
+        {widgets.map((widget) => (
+          <article
+            key={widget.id}
+            className={`board-widget widget-${widget.type} ${widget.locked ? "is-locked" : ""}`}
+            style={{
+              left: `${widget.x}%`,
+              top: `${widget.y}%`,
+              width: `${widget.w}%`,
+              height: `${widget.h}%`,
+              transform: `rotate(${widget.tilt}deg)`,
+            }}
+          >
+            {arranging && (
+              <div className="widget-controls">
+                <button
+                  onPointerDown={(event) => beginMove(event, widget)}
+                  aria-label={`Move ${widget.type} card`}
                 >
+                  <Grip />
+                </button>
+                <button
+                  onClick={() => updateWidget(widget.id, { locked: !widget.locked })}
+                  aria-label={widget.locked ? "Unlock card" : "Lock card"}
+                >
+                  {widget.locked ? <Lock /> : <Unlock />}
+                </button>
+                {widget.type !== "welcome" && (
                   <button
-                    className="task-check"
-                    onClick={() => onComplete(task)}
-                    aria-label={`${task.completedAt ? "Mark incomplete" : "Complete"} ${task.title}`}
+                    onClick={() =>
+                      setWidgets((current) => current.filter((item) => item.id !== widget.id))
+                    }
+                    aria-label={`Remove ${widget.type} card`}
                   >
-                    {task.completedAt ? <Check /> : <Circle />}
+                    <X />
                   </button>
-                  <div className="task-body">
-                    <h3>{task.title}</h3>
-                    <div className="assigned">
-                      {task.assigneeIds.length ? (
-                        task.assigneeIds.map((memberId) => {
-                          const member = getMember(memberId, snapshot.members);
-                          return member ? <Avatar member={member} small key={memberId} /> : null;
-                        })
-                      ) : (
-                        <span>Anyone can help</span>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    className="icon-button edit-button"
-                    onClick={() => onEdit({ kind: "task", value: task })}
-                    aria-label={`Edit ${task.title}`}
-                  >
-                    <Pencil />
-                  </button>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              icon={<ListChecks />}
-              title="Nothing to carry"
-              body="Add one small job for the household."
-              action="Add a task"
-              onAction={() => onEdit({ kind: "task" })}
-            />
-          )}
-        </section>
+                )}
+              </div>
+            )}
+            <div className="widget-content">{renderWidget(widget)}</div>
+            {arranging && !widget.locked && (
+              <button
+                className="resize-handle"
+                onPointerDown={(event) => beginMove(event, widget, true)}
+                aria-label={`Resize ${widget.type} card`}
+              >
+                <span />
+              </button>
+            )}
+          </article>
+        ))}
       </div>
+      {trayOpen && (
+        <div
+          className="widget-tray-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setTrayOpen(false);
+          }}
+        >
+          <section
+            className="widget-tray"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="widget-tray-title"
+          >
+            <header>
+              <div>
+                <p className="eyebrow">Make it yours</p>
+                <h2 id="widget-tray-title">Add something to the board</h2>
+              </div>
+              <button
+                className="icon-button"
+                onClick={() => setTrayOpen(false)}
+                aria-label="Close widget tray"
+              >
+                <X />
+              </button>
+            </header>
+            <div className="widget-picker">
+              <button onClick={() => addWidget("note")}>
+                <span className="picker-icon yellow">
+                  <StickyNote />
+                </span>
+                <strong>Sticky note</strong>
+                <small>A quick reminder</small>
+              </button>
+              <button onClick={() => addWidget("tasks")}>
+                <span className="picker-icon sage">
+                  <ListChecks />
+                </span>
+                <strong>Checklist</strong>
+                <small>Shared little things</small>
+              </button>
+              <button onClick={() => addWidget("schedule")}>
+                <span className="picker-icon coral">
+                  <CalendarDays />
+                </span>
+                <strong>Schedule</strong>
+                <small>What’s happening</small>
+              </button>
+              <button onClick={() => addWidget("meal")}>
+                <span className="picker-icon clay">
+                  <Utensils />
+                </span>
+                <strong>Meal</strong>
+                <small>What’s for dinner</small>
+              </button>
+              <button onClick={() => addWidget("countdown")}>
+                <span className="picker-icon sky">
+                  <Timer />
+                </span>
+                <strong>Countdown</strong>
+                <small>Something to anticipate</small>
+              </button>
+              <button onClick={() => addWidget("photo")}>
+                <span className="picker-icon plum">
+                  <Image />
+                </span>
+                <strong>Photo</strong>
+                <small>A favorite moment</small>
+              </button>
+              <button disabled>
+                <span className="picker-icon">
+                  <LayoutDashboard />
+                </span>
+                <strong>More widgets</strong>
+                <small>Weather, links & more soon</small>
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WidgetHeading({
+  kicker,
+  title,
+  icon,
+  onAdd,
+}: {
+  kicker: string;
+  title: string;
+  icon: React.ReactNode;
+  onAdd: () => void;
+}) {
+  return (
+    <div className="widget-heading">
+      <div>
+        <span>{kicker}</span>
+        <h2>{title}</h2>
+      </div>
+      <button onClick={onAdd} aria-label={kicker === "To do" ? "Add task" : `Add to ${kicker}`}>
+        {icon}
+        <Plus />
+      </button>
     </div>
   );
 }

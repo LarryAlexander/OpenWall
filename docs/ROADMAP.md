@@ -47,6 +47,22 @@ This roadmap orders work by evidence and dependency, not by feature excitement. 
 
 **Exit:** a household can import or subscribe to a real calendar safely, understand its source, and recover from errors without losing local items.
 
+## Milestone 1.5 — Living corkboard
+
+**Outcome:** the new freeform board becomes functional and durable before more integrations expand its scope.
+
+- persist versioned widgets and layouts through the repository layer
+- include board content in backup, restore, reset, and recovery
+- add distinct Glance, Arrange, and Edit modes
+- implement undo/redo, card layering, locking, duplication, and keyboard arrangement
+- turn countdowns into editable, timezone-aware live clocks with completed states
+- make notes, meals, and photo cards editable rather than decorative
+- provide wall, tablet, and phone-specific interaction behavior
+
+**Exit:** a household can create and edit a real countdown and note, arrange them safely, reload offline, and recover the same board from a backup.
+
+See [Next Phase: A Living Household Board](NEXT_PHASE.md) for the functional and UI/UX specification.
+
 ## Milestone 3 — Shared household utilities
 
 **Outcome:** OpenWall becomes useful beyond the day's schedule.

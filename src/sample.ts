@@ -1,4 +1,4 @@
-import { addMinutes, endOfDay, formatISO, set } from "date-fns";
+import { formatDate } from "./date";
 import type { HouseholdSnapshot, MemberColorToken } from "./types";
 
 const makeId = () => crypto.randomUUID();
@@ -33,8 +33,12 @@ export function createSampleHousehold(): HouseholdSnapshot {
   const snapshot = createHousehold("The River House", ["Maya", "Theo", "Nana Jo", "Ari"]);
   const [maya, theo, jo, ari] = snapshot.members;
   const now = new Date();
-  const at = (hours: number, minutes = 0) =>
-    set(now, { hours, minutes, seconds: 0, milliseconds: 0 });
+  const at = (hours: number, minutes = 0) => {
+    const result = new Date(now);
+    result.setHours(hours, minutes, 0, 0);
+    return result;
+  };
+  const inMinutes = (date: Date, minutes: number) => new Date(date.getTime() + minutes * 60_000);
   const createdAt = now.toISOString();
 
   snapshot.scheduleItems = [
@@ -43,8 +47,8 @@ export function createSampleHousehold(): HouseholdSnapshot {
       householdId: snapshot.household.id,
       title: "School drop-off",
       memberIds: [theo.id, ari.id],
-      startsAt: formatISO(at(8, 10)),
-      endsAt: formatISO(at(8, 40)),
+      startsAt: at(8, 10).toISOString(),
+      endsAt: at(8, 40).toISOString(),
       allDay: false,
       createdAt,
       updatedAt: createdAt,
@@ -54,8 +58,8 @@ export function createSampleHousehold(): HouseholdSnapshot {
       householdId: snapshot.household.id,
       title: "Design review",
       memberIds: [maya.id],
-      startsAt: formatISO(at(10)),
-      endsAt: formatISO(at(11)),
+      startsAt: at(10).toISOString(),
+      endsAt: at(11).toISOString(),
       allDay: false,
       notes: "Bring the latest sketches",
       createdAt,
@@ -66,8 +70,8 @@ export function createSampleHousehold(): HouseholdSnapshot {
       householdId: snapshot.household.id,
       title: "Library club",
       memberIds: [jo.id],
-      startsAt: formatISO(at(13, 30)),
-      endsAt: formatISO(at(14, 30)),
+      startsAt: at(13, 30).toISOString(),
+      endsAt: at(14, 30).toISOString(),
       allDay: false,
       createdAt,
       updatedAt: createdAt,
@@ -77,8 +81,8 @@ export function createSampleHousehold(): HouseholdSnapshot {
       householdId: snapshot.household.id,
       title: "Soccer practice",
       memberIds: [theo.id],
-      startsAt: formatISO(at(16, 30)),
-      endsAt: formatISO(at(18)),
+      startsAt: at(16, 30).toISOString(),
+      endsAt: at(18).toISOString(),
       allDay: false,
       notes: "Blue field",
       createdAt,
@@ -89,8 +93,8 @@ export function createSampleHousehold(): HouseholdSnapshot {
       householdId: snapshot.household.id,
       title: "Taco night",
       memberIds: snapshot.members.map((member) => member.id),
-      startsAt: formatISO(at(18, 30)),
-      endsAt: formatISO(addMinutes(at(18, 30), 60)),
+      startsAt: at(18, 30).toISOString(),
+      endsAt: inMinutes(at(18, 30), 60).toISOString(),
       allDay: false,
       createdAt,
       updatedAt: createdAt,
@@ -103,7 +107,7 @@ export function createSampleHousehold(): HouseholdSnapshot {
       householdId: snapshot.household.id,
       title: "Feed Pepper",
       assigneeIds: [ari.id],
-      dueDate: formatISO(endOfDay(now), { representation: "date" }),
+      dueDate: formatDate(now, "yyyy-MM-dd"),
       createdAt,
       updatedAt: createdAt,
     },
@@ -112,7 +116,7 @@ export function createSampleHousehold(): HouseholdSnapshot {
       householdId: snapshot.household.id,
       title: "Bring recycling out",
       assigneeIds: [theo.id],
-      dueDate: formatISO(endOfDay(now), { representation: "date" }),
+      dueDate: formatDate(now, "yyyy-MM-dd"),
       createdAt,
       updatedAt: createdAt,
     },
@@ -121,7 +125,7 @@ export function createSampleHousehold(): HouseholdSnapshot {
       householdId: snapshot.household.id,
       title: "Pick up groceries",
       assigneeIds: [maya.id, jo.id],
-      dueDate: formatISO(endOfDay(now), { representation: "date" }),
+      dueDate: formatDate(now, "yyyy-MM-dd"),
       createdAt,
       updatedAt: createdAt,
     },
@@ -130,7 +134,7 @@ export function createSampleHousehold(): HouseholdSnapshot {
       householdId: snapshot.household.id,
       title: "Water the herbs",
       assigneeIds: [jo.id],
-      dueDate: formatISO(endOfDay(now), { representation: "date" }),
+      dueDate: formatDate(now, "yyyy-MM-dd"),
       completedAt: createdAt,
       createdAt,
       updatedAt: createdAt,

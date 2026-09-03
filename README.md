@@ -2,7 +2,7 @@
 
 OpenWall is an open-source, offline-first family dashboard that runs on hardware people already own.
 
-The first release is intentionally small: a household can create family members, see today's shared schedule, assign simple tasks, and keep using the board after the network disappears. No account, subscription, or vendor-owned display is required.
+The first release is intentionally small: a household can arrange a freeform corkboard of useful cards, see today's shared schedule, assign simple tasks, and keep using the board after the network disappears. No account, subscription, or vendor-owned display is required.
 
 > Project status: local MVP implemented and under validation. It has not been published or deployed.
 
@@ -15,7 +15,9 @@ OpenWall is not intended to copy Skylight's branding or interface. It addresses 
 ## Current MVP
 
 - household setup with named, color-coded members
-- a wall-friendly “Today” view
+- a wall-friendly freeform corkboard with movable, resizable, lockable cards
+- schedule, task, note, meal, countdown, welcome, and photo-style cards
+- a protected Arrange mode and an add-card tray
 - locally created schedule items
 - assignable, completable household tasks
 - automatic local persistence
@@ -32,7 +34,6 @@ Calendar-provider sync, multi-device sync, meals, groceries, photos, AI, and hom
 - Vite
 - IndexedDB through Dexie
 - a Vite PWA/service-worker integration
-- date-fns
 - Vitest and Testing Library
 - Playwright for the critical install/offline journey
 - GitHub Actions for checks and a static GitHub Pages demo
@@ -52,6 +53,7 @@ Run the complete local verification suite with `pnpm lint`, `pnpm test`, `pnpm b
 
 - [Product brief](docs/PRODUCT_BRIEF.md)
 - [Roadmap](docs/ROADMAP.md)
+- [Next phase: a living household board](docs/NEXT_PHASE.md)
 - [Product status](docs/PRODUCT_STATUS.md)
 
 ## Current decision gate

@@ -20,12 +20,12 @@
 - Defined a primary journey, critical states, and observable acceptance criteria.
 - Proposed a staged roadmap through optional sync, integrations, and assistance.
 - Completed a proportional commercial-feasibility baseline.
-- Implemented onboarding, sample data, Today board, member filters, schedule and task editing, task completion, settings, backup/restore, local reset, responsive layouts, dark mode, and PWA packaging.
+- Implemented onboarding, sample data, a freeform Today corkboard, movable/resizable/lockable cards, an add-card tray, member filters, schedule and task editing, task completion, settings, backup/restore, local reset, responsive reading layouts, dark mode, and PWA packaging.
 - Added Apache-2.0 licensing, contributor and security policies, dependency provenance, continuous integration, and an opt-in Pages deployment workflow.
 
 ## Evidence and verification
 
-- **Performed:** production TypeScript build; lint; unit coverage of backups and IndexedDB repository behavior; end-to-end setup, sample, persistence, tasks, settings, and erase-confirmation flows across 1920×1080, 1280×800, tablet, and phone browser profiles; visual inspection of welcome and populated wall states.
+- **Performed:** production TypeScript build; lint; unit coverage of backups and IndexedDB repository behavior; end-to-end setup, sample, persistence, tasks, settings, erase-confirmation, add-card, and safe-arrangement flows across 1920×1080, 1280×800, tablet, and phone browser profiles; visual inspection of welcome, populated corkboard, and responsive states.
 - **Not performed:** user interviews, physical wall-device testing, full assistive-technology audit, public GitHub repository creation, GitHub Pages deployment, name/trademark search, or legal review.
 
 ## Filled assumptions
@@ -75,7 +75,7 @@
 
 ## Next milestone
 
-Test the implemented Today-board experience with 5–8 household organizers and revise it from observed evidence.
+Test the implemented freeform corkboard experience with 5–8 household organizers and revise it from observed evidence.
 
 ## Human-only action
 
