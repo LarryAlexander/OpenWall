@@ -88,3 +88,14 @@ export interface BoardWidget {
 
 export type EditorTarget =
   { kind: "event"; value?: ScheduleItem } | { kind: "task"; value?: HouseholdTask };
+
+export type TourStatus = "unseen" | "dismissed" | "completed";
+
+export interface GuideState {
+  schemaVersion: 1;
+  tourStatus: TourStatus;
+  completedTourVersion?: string;
+  dismissedTipIds: string[];
+  seenReleaseVersions: string[];
+  lastHelpCategory?: string;
+}

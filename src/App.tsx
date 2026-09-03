@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Circle,
+  Compass,
   Download,
   Grip,
   Home,
@@ -36,12 +37,22 @@ import { CountdownEditor } from "./CountdownEditor";
 import { getCountdownConfig, updateBoardWidgetWithCountdown } from "./countdown";
 import { formatDate as format, isSameDay, parseISO } from "./date";
 import { repository } from "./db";
+import { GuideCard } from "./GuideCard";
+import { GuideTour } from "./GuideTour";
+import {
+  completeTour,
+  dismissTour,
+  GUIDE_EVENT_START_TOUR,
+  loadGuideState,
+  type StartTourEventDetail,
+} from "./guideState";
 import { createHousehold, createSampleHousehold } from "./sample";
 import type {
   BoardWidget,
   BoardWidgetType,
   CountdownWidgetConfig,
   EditorTarget,
+  GuideState,
   HouseholdMember,
   HouseholdSnapshot,
   HouseholdTask,
@@ -607,12 +618,18 @@ function TodayBoard({
   onFilter,
   onEdit,
   onComplete,
+  guideState,
+  onStartTour,
+  onDismissGuideCard,
 }: {
   snapshot: HouseholdSnapshot;
   filterId: string | null;
   onFilter: (id: string | null) => void;
   onEdit: (target: EditorTarget) => void;
   onComplete: (task: HouseholdTask) => void;
+  guideState: GuideState;
+  onStartTour: (trigger?: HTMLElement | null) => void;
+  onDismissGuideCard: () => void;
 }) {
   const today = new Date();
   const boardRef = useRef<HTMLDivElement>(null);
@@ -875,6 +892,9 @@ function TodayBoard({
           </button>
         ))}
       </div>
+      {guideState.tourStatus === "unseen" && (
+        <GuideCard onStartTour={onStartTour} onDismiss={onDismissGuideCard} />
+      )}
       {arranging && (
         <div className="arrange-hint">
           <Grip /> Drag cards by their top edge. Resize from the lower corner. Lock the board when
@@ -1089,12 +1109,14 @@ function SettingsView({
   onSampleReset,
   onHouseholdReset,
   notice,
+  onStartTour,
 }: {
   snapshot: HouseholdSnapshot;
   onImport: (file: File) => void;
   onSampleReset: () => void;
   onHouseholdReset: () => void;
   notice: Notice;
+  onStartTour: (trigger?: HTMLElement | null) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const exportData = () => {
@@ -1179,6 +1201,25 @@ function SettingsView({
           </div>
           <span className="local-pill">System setting</span>
         </section>
+        <section className="settings-card">
+          <div className="settings-icon">
+            <Compass />
+          </div>
+          <div>
+            <h2>Guided orientation</h2>
+            <p>
+              Take the 60-second tour again to review boards, widgets, countdowns, and offline
+              privacy.
+            </p>
+          </div>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={(e) => onStartTour(e.currentTarget)}
+          >
+            <Compass /> Replay tour
+          </button>
+        </section>
         <section className="settings-card danger-zone">
           <div className="settings-icon">
             <RotateCcw />
@@ -1230,6 +1271,50 @@ export default function App() {
   const [offlineReady, setOfflineReady] = useState(false);
   const [update, setUpdate] = useState<(() => Promise<void>) | null>(null);
   const [online, setOnline] = useState(navigator.onLine);
+  const [guideState, setGuideState] = useState<GuideState>(() => loadGuideState());
+  const [tourOpen, setTourOpen] = useState(false);
+  const [tourTrigger, setTourTrigger] = useState<HTMLElement | null>(null);
+  const [tourStep, setTourStep] = useState(0);
+
+  useEffect(() => {
+    const handleTourEvent = (event: Event) => {
+      const detail = (event as CustomEvent<StartTourEventDetail>).detail;
+      setTourStep(detail?.stepIndex ?? 0);
+      setTourTrigger(detail?.triggerElement ?? (document.activeElement as HTMLElement | null));
+      setTourOpen(true);
+    };
+    window.addEventListener(GUIDE_EVENT_START_TOUR, handleTourEvent);
+    return () => {
+      window.removeEventListener(GUIDE_EVENT_START_TOUR, handleTourEvent);
+    };
+  }, []);
+
+  const handleStartTour = (trigger?: HTMLElement | null, step = 0) => {
+    setTourStep(step);
+    setTourTrigger(trigger ?? (document.activeElement as HTMLElement | null));
+    setTourOpen(true);
+  };
+
+  const handleCompleteTour = () => {
+    const next = completeTour();
+    setGuideState(next);
+    setTourOpen(false);
+  };
+
+  const handleDismissTour = () => {
+    const next = dismissTour(true);
+    setGuideState(next);
+    setTourOpen(false);
+  };
+
+  const handleCloseTour = () => {
+    setTourOpen(false);
+  };
+
+  const handleDismissGuideCard = () => {
+    const next = dismissTour(true);
+    setGuideState(next);
+  };
 
   useEffect(() => {
     repository
@@ -1526,6 +1611,9 @@ export default function App() {
             onFilter={setFilterId}
             onEdit={setEditor}
             onComplete={toggleTask}
+            guideState={guideState}
+            onStartTour={handleStartTour}
+            onDismissGuideCard={handleDismissGuideCard}
           />
         ) : (
           <SettingsView
@@ -1534,6 +1622,7 @@ export default function App() {
             onSampleReset={resetSample}
             onHouseholdReset={erase}
             notice={notice}
+            onStartTour={handleStartTour}
           />
         )}
       </main>
@@ -1570,6 +1659,16 @@ export default function App() {
             </button>
           </div>
         </Dialog>
+      )}
+      {tourOpen && (
+        <GuideTour
+          open={tourOpen}
+          initialStep={tourStep}
+          triggerElement={tourTrigger}
+          onClose={handleCloseTour}
+          onComplete={handleCompleteTour}
+          onDismiss={handleDismissTour}
+        />
       )}
     </div>
   );
