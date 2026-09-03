@@ -1436,12 +1436,211 @@ fieldset {
 }
 .widget-countdown .widget-content {
   background: #bad8df;
+  cursor: pointer;
+  user-select: none;
+  transition: filter 0.15s ease;
+}
+.widget-countdown .widget-content:hover {
+  filter: brightness(0.98);
 }
 .countdown-widget {
+  height: 100%;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
   justify-content: space-between;
+  position: relative;
+  text-align: left;
 }
-.countdown-widget p {
-  font-size: clamp(1.1rem, 1.65vw, 1.85rem);
+.countdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.countdown-kicker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.countdown-kicker svg {
+  width: 18px;
+  height: 18px;
+  color: #244b53;
+}
+.countdown-kicker span {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #244b53;
+}
+.countdown-edit-btn {
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(36, 75, 83, 0.18);
+  border-radius: 8px;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #244b53;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.countdown-edit-btn:hover {
+  background: rgba(255, 255, 255, 0.85);
+}
+.countdown-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: 6px 0;
+}
+.countdown-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.countdown-digits {
+  font-family: Georgia, serif;
+  font-weight: 700;
+  color: #143239;
+  line-height: 1;
+}
+.countdown-digits.mode-auto,
+.countdown-digits.mode-days {
+  font-size: clamp(1.6rem, 2.8vw, 3.2rem);
+}
+.countdown-digits.mode-digital {
+  font-family: "Courier New", Courier, monospace, Georgia, serif;
+  font-size: clamp(1.4rem, 2.2vw, 2.6rem);
+  letter-spacing: -0.02em;
+}
+.countdown-unit {
+  font-family: Georgia, serif;
+  font-size: clamp(0.95rem, 1.3vw, 1.4rem);
+  font-style: italic;
+  color: #2b545d;
+}
+.countdown-target-name {
+  font-family: Georgia, serif;
+  font-size: clamp(0.95rem, 1.2vw, 1.3rem);
+  color: #1f3e45;
+  margin: 4px 0 2px;
+  line-height: 1.2;
+  word-break: break-word;
+}
+.countdown-target-date,
+.countdown-finished-at {
+  font-size: 0.8rem;
+  color: #416b75;
+  margin: 2px 0 0;
+  display: block;
+}
+.countdown-complete-view {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.countdown-complete-badge {
+  align-self: flex-start;
+  background: #23524b;
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border-radius: 6px;
+  margin-bottom: 3px;
+}
+.countdown-complete-msg {
+  font-family: Georgia, serif;
+  font-size: clamp(1.1rem, 1.6vw, 1.8rem);
+  font-weight: 700;
+  color: #143239;
+  margin: 0;
+  line-height: 1.2;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .widget-countdown .widget-content,
+  .countdown-edit-btn,
+  .countdown-widget {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Countdown Editor Dialog */
+.countdown-dialog {
+  max-width: 640px;
+}
+.form-row-2 {
+  grid-template-columns: 1fr 1fr;
+}
+.countdown-past-banner {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #fdf3e7;
+  border: 1px solid #e2a865;
+  border-radius: 12px;
+  color: #724211;
+  align-items: flex-start;
+}
+.past-banner-content strong {
+  display: block;
+  font-size: 0.92rem;
+  margin-bottom: 2px;
+}
+.past-banner-content p {
+  font-size: 0.85rem;
+  line-height: 1.35;
+  margin: 0 0 8px;
+}
+.past-banner-actions .text-btn {
+  background: transparent;
+  border: 1px solid #c83d31;
+  color: #c83d31;
+  font-size: 0.82rem;
+  padding: 4px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.past-banner-actions .text-btn:hover {
+  background: #c83d31;
+  color: #fff;
+}
+.countdown-preview-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.preview-heading {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.countdown-preview-shell {
+  background: #ece4d4;
+  padding: 16px;
+  border-radius: 16px;
+  display: flex;
+  justify-content: center;
+}
+.countdown-preview-shell .preview-card {
+  width: min(280px, 100%);
+  min-height: 140px;
+  background: #bad8df;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  transform: rotate(0.6deg);
 }
 .widget-photo .widget-content {
   padding: 9px 9px 14px;

@@ -38,18 +38,20 @@ Board interactions:
 
 ## Priority 2 — Functional countdown card
 
+**Prototype status:** implemented locally with editable targets, adaptive live display, timezone selection, completion messaging, and legacy decorative-card migration. Household testing remains outstanding.
+
 The countdown becomes a real clock derived from a target instant, not saved display text.
 
 ### Card data
 
 ```ts
 type CountdownWidgetConfig = {
-  title: string
-  targetAt: string
-  timezone: string
-  displayMode: "auto" | "days" | "digital"
-  completionMessage?: string
-}
+  title: string;
+  targetAt: string;
+  timezone: string;
+  displayMode: "auto" | "days" | "digital";
+  completionMessage?: string;
+};
 ```
 
 ### Display behavior

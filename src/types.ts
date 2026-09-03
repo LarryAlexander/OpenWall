@@ -60,5 +60,31 @@ export interface HouseholdSnapshot {
   tasks: HouseholdTask[];
 }
 
+export type CountdownDisplayMode = "auto" | "days" | "digital";
+
+export interface CountdownWidgetConfig {
+  title: string;
+  targetAt: string;
+  displayMode: CountdownDisplayMode;
+  completionMessage?: string;
+  timezone?: string;
+}
+
+export type BoardWidgetType =
+  "welcome" | "schedule" | "tasks" | "note" | "countdown" | "meal" | "photo";
+
+export interface BoardWidget {
+  id: string;
+  type: BoardWidgetType;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  tilt: number;
+  text?: string;
+  locked?: boolean;
+  countdown?: CountdownWidgetConfig;
+}
+
 export type EditorTarget =
   { kind: "event"; value?: ScheduleItem } | { kind: "task"; value?: HouseholdTask };

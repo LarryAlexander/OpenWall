@@ -31,10 +31,16 @@ import {
   X,
 } from "lucide-react";
 import { parseBackup, serializeBackup } from "./backup";
+import { CountdownCard } from "./CountdownCard";
+import { CountdownEditor } from "./CountdownEditor";
+import { getCountdownConfig, updateBoardWidgetWithCountdown } from "./countdown";
 import { formatDate as format, isSameDay, parseISO } from "./date";
 import { repository } from "./db";
 import { createHousehold, createSampleHousehold } from "./sample";
 import type {
+  BoardWidget,
+  BoardWidgetType,
+  CountdownWidgetConfig,
   EditorTarget,
   HouseholdMember,
   HouseholdSnapshot,
@@ -553,20 +559,6 @@ function Dialog({
   );
 }
 
-type BoardWidgetType = "welcome" | "schedule" | "tasks" | "note" | "countdown" | "meal" | "photo";
-
-type BoardWidget = {
-  id: string;
-  type: BoardWidgetType;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  tilt: number;
-  text?: string;
-  locked?: boolean;
-};
-
 const defaultBoardWidgets: BoardWidget[] = [
   { id: "welcome", type: "welcome", x: 2, y: 2, w: 40, h: 18, tilt: -0.3, locked: true },
   { id: "schedule", type: "schedule", x: 2, y: 23, w: 51, h: 70, tilt: 0 },
@@ -599,7 +591,12 @@ const defaultBoardWidgets: BoardWidget[] = [
     w: 14,
     h: 25,
     tilt: 0.7,
-    text: "12 days\nuntil the beach",
+    countdown: {
+      title: "Trip to the beach",
+      targetAt: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000).toISOString(),
+      displayMode: "auto",
+      completionMessage: "At the beach!",
+    },
   },
   { id: "photo", type: "photo", x: 84, y: 73, w: 14, h: 22, tilt: -1.1 },
 ];
@@ -622,14 +619,24 @@ function TodayBoard({
   const storageKey = `openwall-board-${snapshot.household.id}`;
   const [arranging, setArranging] = useState(false);
   const [trayOpen, setTrayOpen] = useState(false);
+  const [editingCountdown, setEditingCountdown] = useState<BoardWidget | null>(null);
   const [widgets, setWidgets] = useState<BoardWidget[]>(() => {
     try {
       const stored = localStorage.getItem(storageKey);
-      return stored ? (JSON.parse(stored) as BoardWidget[]) : defaultBoardWidgets;
+      if (!stored) return defaultBoardWidgets;
+      const parsed = JSON.parse(stored) as BoardWidget[];
+      return parsed.map((w) => {
+        if (w.type === "countdown") {
+          const cfg = getCountdownConfig(w, snapshot.household.timezone);
+          return updateBoardWidgetWithCountdown(w, cfg);
+        }
+        return w;
+      });
     } catch {
       return defaultBoardWidgets;
     }
   });
+
   const events = snapshot.scheduleItems.filter(
     (item) =>
       isSameDay(parseISO(item.startsAt), today) && (!filterId || item.memberIds.includes(filterId)),
@@ -686,12 +693,12 @@ function TodayBoard({
       welcome: { w: 38, h: 18 },
       schedule: { w: 45, h: 58 },
       tasks: { w: 28, h: 43 },
-      note: { w: 17, h: 26, text: "Tap edit and write a note" },
-      countdown: { w: 17, h: 23, text: "30 days\nuntil something good" },
+      note: { w: 17, h: 26, text: "Add your note here" },
+      countdown: { w: 17, h: 23 },
       meal: { w: 22, h: 25, text: "Tonight’s dinner\nAdd a plan" },
       photo: { w: 18, h: 25 },
     };
-    const added = {
+    let added: BoardWidget = {
       id: `${type}-${crypto.randomUUID()}`,
       type,
       x: 40 + (widgets.length % 4) * 4,
@@ -699,6 +706,16 @@ function TodayBoard({
       tilt: type === "note" ? -1.1 : 0,
       ...defaults[type],
     };
+    if (type === "countdown") {
+      const cfg: CountdownWidgetConfig = {
+        title: "Something good",
+        targetAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        displayMode: "auto",
+        completionMessage: "It’s here!",
+        timezone: snapshot.household.timezone,
+      };
+      added = updateBoardWidgetWithCountdown(added, cfg);
+    }
     setWidgets((current) => [...current, added]);
     setTrayOpen(false);
     setArranging(true);
@@ -797,10 +814,12 @@ function TodayBoard({
       );
     if (widget.type === "countdown")
       return (
-        <div className="simple-widget countdown-widget">
-          <Timer />
-          <p>{widget.text}</p>
-        </div>
+        <CountdownCard
+          widget={widget}
+          householdTimezone={snapshot.household.timezone}
+          arranging={arranging}
+          onEdit={setEditingCountdown}
+        />
       );
     return (
       <div className="photo-widget">
@@ -994,6 +1013,21 @@ function TodayBoard({
             </div>
           </section>
         </div>
+      )}
+      {editingCountdown && (
+        <CountdownEditor
+          widget={editingCountdown}
+          householdTimezone={snapshot.household.timezone}
+          onSave={(updated) => {
+            updateWidget(updated.id, updated);
+            setEditingCountdown(null);
+          }}
+          onDelete={(widgetId) => {
+            setWidgets((current) => current.filter((item) => item.id !== widgetId));
+            setEditingCountdown(null);
+          }}
+          onClose={() => setEditingCountdown(null)}
+        />
       )}
     </div>
   );
