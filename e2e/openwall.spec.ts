@@ -189,7 +189,7 @@ test("moves and resizes cards on a wall-sized board", async ({ page }) => {
 
   await page.mouse.move(gripBox!.x + gripBox!.width / 2, gripBox!.y + gripBox!.height / 2);
   await page.mouse.down();
-  await page.mouse.move(gripBox!.x + 90, gripBox!.y + 60, { steps: 6 });
+  await page.mouse.move(gripBox!.x + 90, gripBox!.y - 60, { steps: 6 });
   await page.mouse.up();
   await expect
     .poll(() => schedule.boundingBox())
@@ -201,7 +201,7 @@ test("moves and resizes cards on a wall-sized board", async ({ page }) => {
     );
   const movedBox = await schedule.boundingBox();
   expect(movedBox!.x).toBeGreaterThan(initialBox!.x + 30);
-  expect(movedBox!.y).toBeGreaterThan(initialBox!.y + 20);
+  expect(movedBox!.y).toBeLessThan(initialBox!.y - 20);
 
   await schedule.getByRole("button", { name: "Make schedule card larger", exact: true }).click();
   const enlargedBox = await schedule.boundingBox();
