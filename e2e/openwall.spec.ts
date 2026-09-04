@@ -105,6 +105,36 @@ test("keeps every primary view within iPad portrait and landscape widths", async
   }
 });
 
+test("reorders cards by dragging in the responsive board", async ({ page }) => {
+  await page.setViewportSize({ width: 834, height: 1194 });
+  await page.getByRole("button", { name: /explore a sample home/i }).click();
+  await page.getByRole("button", { name: "Arrange", exact: true }).click();
+
+  const board = page.locator(".open-corkboard");
+  const schedule = board.locator('[data-widget-id="schedule"]');
+  const tasks = board.locator('[data-widget-id="tasks"]');
+  const scheduleGrip = schedule.getByRole("button", { name: "Move schedule card" });
+  const taskBox = await tasks.boundingBox();
+  const gripBox = await scheduleGrip.boundingBox();
+  expect(taskBox).not.toBeNull();
+  expect(gripBox).not.toBeNull();
+
+  await page.mouse.move(gripBox!.x + gripBox!.width / 2, gripBox!.y + gripBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(taskBox!.x + taskBox!.width / 2, taskBox!.y + taskBox!.height - 10, {
+    steps: 8,
+  });
+  await page.mouse.up();
+
+  await expect
+    .poll(() =>
+      board
+        .locator("[data-widget-id]")
+        .evaluateAll((cards) => cards.map((card) => card.getAttribute("data-widget-id"))),
+    )
+    .toEqual(["welcome", "tasks", "schedule", "note", "meal", "countdown", "photo"]);
+});
+
 test("shows settings and requires confirmation before erase", async ({ page }) => {
   await page.getByRole("button", { name: /explore a sample home/i }).click();
   await page.getByRole("button", { name: "Settings" }).click();

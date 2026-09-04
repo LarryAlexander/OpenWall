@@ -683,6 +683,7 @@ function TodayBoard({
   const boardRef = useRef<HTMLDivElement>(null);
   const storageKey = `openwall-board-${snapshot.household.id}`;
   const [arranging, setArranging] = useState(false);
+  const [draggingWidgetId, setDraggingWidgetId] = useState<string | null>(null);
   const [trayOpen, setTrayOpen] = useState(false);
   const [cardJustAdded, setCardJustAdded] = useState(false);
   const [editingCountdown, setEditingCountdown] = useState<BoardWidget | null>(null);
@@ -735,7 +736,20 @@ function TodayBoard({
     event.currentTarget.setPointerCapture(event.pointerId);
     const board = boardRef.current.getBoundingClientRect();
     const start = { pointerX: event.clientX, pointerY: event.clientY, ...widget };
+    const isStackedBoard = window.matchMedia("(max-width: 1279px)").matches;
+    const draggedElement = event.currentTarget.closest<HTMLElement>("[data-widget-id]");
+
+    if (isStackedBoard && resizing) return;
+    if (isStackedBoard) setDraggingWidgetId(widget.id);
+
     const move = (moveEvent: PointerEvent) => {
+      if (isStackedBoard) {
+        draggedElement?.style.setProperty(
+          "--drag-offset-y",
+          `${moveEvent.clientY - start.pointerY}px`,
+        );
+        return;
+      }
       const dx = ((moveEvent.clientX - start.pointerX) / board.width) * 100;
       const dy = ((moveEvent.clientY - start.pointerY) / board.height) * 100;
       if (resizing) {
@@ -750,12 +764,42 @@ function TodayBoard({
         });
       }
     };
-    const stop = () => {
+    const stop = (stopEvent: PointerEvent) => {
+      if (isStackedBoard) {
+        const cards = Array.from(
+          boardRef.current?.querySelectorAll<HTMLElement>("[data-widget-id]") ?? [],
+        ).filter((card) => card.dataset.widgetId !== widget.id);
+        const beforeId = cards.find(
+          (card) => stopEvent.clientY < card.getBoundingClientRect().top + card.offsetHeight / 2,
+        )?.dataset.widgetId;
+
+        setWidgets((current) => {
+          const moved = current.find((item) => item.id === widget.id);
+          if (!moved) return current;
+          const remaining = current.filter((item) => item.id !== widget.id);
+          const insertionIndex = beforeId
+            ? remaining.findIndex((item) => item.id === beforeId)
+            : remaining.length;
+          remaining.splice(insertionIndex < 0 ? remaining.length : insertionIndex, 0, moved);
+          return remaining;
+        });
+        draggedElement?.style.removeProperty("--drag-offset-y");
+        setDraggingWidgetId(null);
+      }
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", stop);
+      window.removeEventListener("pointercancel", cancel);
+    };
+    const cancel = () => {
+      draggedElement?.style.removeProperty("--drag-offset-y");
+      setDraggingWidgetId(null);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", stop);
+      window.removeEventListener("pointercancel", cancel);
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", stop);
+    window.addEventListener("pointercancel", cancel);
   };
 
   const addWidget = (type: BoardWidgetType) => {
@@ -921,6 +965,7 @@ function TodayBoard({
         <div className="toolbar-actions">
           <button
             className={arranging ? "arrange-button active" : "arrange-button"}
+            aria-pressed={arranging}
             onClick={() =>
               setArranging((value) => {
                 if (value) setCardJustAdded(false);
@@ -994,8 +1039,14 @@ function TodayBoard({
       ) : null}
       {arranging && (
         <div className="arrange-hint">
-          <Grip /> Drag cards by their top edge. Resize from the lower corner. Lock the board when
-          it feels right.
+          <Grip />
+          <span className="arrange-hint-wide">
+            Drag cards by their top edge. Resize from the lower corner. Lock the board when it feels
+            right.
+          </span>
+          <span className="arrange-hint-stacked">
+            Drag a card by its grip to change its order. Lock cards when the board feels right.
+          </span>
         </div>
       )}
       <div className={`open-corkboard ${arranging ? "is-arranging" : ""}`} ref={boardRef}>
@@ -1003,7 +1054,8 @@ function TodayBoard({
         {widgets.map((widget) => (
           <article
             key={widget.id}
-            className={`board-widget widget-${widget.type} ${widget.locked ? "is-locked" : ""}`}
+            data-widget-id={widget.id}
+            className={`board-widget widget-${widget.type} ${widget.locked ? "is-locked" : ""} ${draggingWidgetId === widget.id ? "is-dragging" : ""}`}
             style={{
               left: `${widget.x}%`,
               top: `${widget.y}%`,

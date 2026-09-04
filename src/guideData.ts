@@ -14,7 +14,7 @@ export const GUIDE_CATEGORIES: GuideCategory[] = [
   {
     id: "arranging-the-board",
     title: "Arranging the board",
-    description: "Unlock the corkboard to reposition, resize, and lock cards for wall viewing.",
+    description: "Unlock the corkboard to position, reorder, resize, and lock cards on any screen.",
   },
   {
     id: "household-members-and-filters",
@@ -205,8 +205,9 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
     ],
     steps: [
       "Click 'Arrange' in the top toolbar to unlock the canvas and reveal card controls.",
-      "Drag any card by its top grip handle to move it anywhere on the corkboard.",
-      "Drag the resize handle at the bottom-right corner to make cards larger for wall readability or smaller for density.",
+      "On a wall-sized display, drag any card by its top grip handle to move it anywhere on the corkboard.",
+      "On tablets and phones, drag a card by its grip to change its place in the stacked board.",
+      "On wall-sized displays, drag the bottom-right resize handle to make a card larger or smaller.",
       "Click the Lock icon on cards you want fixed in place so other family members don't move them.",
       "Click 'Done arranging' when finished to lock the board back into touch-safe Glance mode.",
     ],

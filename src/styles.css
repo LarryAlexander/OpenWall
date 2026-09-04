@@ -1575,6 +1575,9 @@ fieldset {
 .arrange-hint svg {
   width: 17px;
 }
+.arrange-hint-stacked {
+  display: none;
+}
 .open-corkboard {
   width: min(100%, 1800px);
   height: clamp(690px, calc(100vh - 170px), 940px);
@@ -1680,6 +1683,7 @@ fieldset {
 .widget-controls button:first-child {
   margin-right: auto;
   cursor: grab;
+  touch-action: none;
 }
 .widget-controls svg {
   width: 15px;
@@ -2638,9 +2642,14 @@ fieldset {
   .cork-toolbar h1 {
     font-size: 1.75rem;
   }
-  .arrange-button,
   .toolbar-fullscreen {
     display: none;
+  }
+  .arrange-hint-wide {
+    display: none;
+  }
+  .arrange-hint-stacked {
+    display: inline;
   }
   .open-corkboard {
     min-width: 0;
@@ -2660,6 +2669,22 @@ fieldset {
     height: auto !important;
     min-height: 170px;
     transform: none !important;
+  }
+  .board-widget.is-dragging {
+    z-index: 10;
+    transform: translateY(var(--drag-offset-y, 0)) scale(1.015) !important;
+    filter: drop-shadow(0 16px 22px rgba(46, 32, 22, 0.28));
+    transition: none;
+  }
+  .widget-controls {
+    top: -26px;
+    height: 44px;
+  }
+  .widget-controls button {
+    width: 44px;
+  }
+  .resize-handle {
+    display: none;
   }
   .widget-schedule {
     min-height: 480px;
