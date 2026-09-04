@@ -4,6 +4,16 @@ test.beforeEach(async ({ page }) => {
   await page.goto("./");
 });
 
+async function expectNoHorizontalOverflow(page: import("@playwright/test").Page) {
+  const widths = await page.evaluate(() => ({
+    viewport: document.documentElement.clientWidth,
+    document: document.documentElement.scrollWidth,
+    body: document.body.scrollWidth,
+  }));
+  expect(widths.document).toBeLessThanOrEqual(widths.viewport);
+  expect(widths.body).toBeLessThanOrEqual(widths.viewport);
+}
+
 test("opens the fictional household and completes a task", async ({ page }) => {
   await page.getByRole("button", { name: /explore a sample home/i }).click();
   await expect(page.getByRole("heading", { name: /today’s rhythm/i })).toBeVisible();
@@ -62,6 +72,31 @@ test("keeps mobile navigation reachable and remembers offline readiness", async 
   await page.reload();
   await page.getByRole("button", { name: "Settings" }).click();
   await expect(page.getByText("Offline app files are ready")).toBeVisible();
+});
+
+test("keeps every primary view within iPad portrait and landscape widths", async ({ page }) => {
+  const viewports = [
+    { width: 768, height: 1024 },
+    { width: 1024, height: 768 },
+    { width: 834, height: 1194 },
+    { width: 1194, height: 834 },
+  ];
+
+  await page.getByRole("button", { name: /explore a sample home/i }).click();
+
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await page.getByRole("button", { name: "Today" }).click();
+    await expect(page.getByRole("button", { name: "Settings", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Guide", exact: true })).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+
+    await page.getByRole("button", { name: "Guide", exact: true }).click();
+    await expectNoHorizontalOverflow(page);
+
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    await expectNoHorizontalOverflow(page);
+  }
 });
 
 test("shows settings and requires confirmation before erase", async ({ page }) => {
