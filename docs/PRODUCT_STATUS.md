@@ -22,13 +22,14 @@
 - Completed a proportional commercial-feasibility baseline.
 - Implemented onboarding, sample data, a freeform Today corkboard, movable/resizable/lockable cards, an add-card tray, member filters, schedule and task editing, task completion, settings, backup/restore, local reset, responsive reading layouts, dark mode, and PWA packaging.
 - Implemented the optional OpenWall Guide tour, searchable offline help, release history, one-time contextual coach marks, PWA post-update education, and device-local guide preferences.
+- Added a mobile-focused install and connectivity guide with device-aware steps, an available native install prompt, explicit single-browser data boundaries, and persistent offline-readiness status.
 - Added explicit guidance truth guardrails covering backup boundaries, browser storage, offline prerequisites, device-dependent installation, placeholder cards, and unvalidated product claims.
 - Added Apache-2.0 licensing, contributor and security policies, dependency provenance, continuous integration, and an opt-in Pages deployment workflow.
 - Published the public `LarryAlexander/OpenWall` repository and deployed the static demo through GitHub Pages.
 
 ## Evidence and verification
 
-- **Performed:** production TypeScript build; lint; unit coverage of backups and IndexedDB repository behavior; end-to-end setup, sample, persistence, tasks, settings, erase-confirmation, add-card, and safe-arrangement flows across 1920×1080, 1280×800, tablet, and phone browser profiles; visual inspection of welcome, populated corkboard, and responsive states.
+- **Performed:** production TypeScript build; lint; unit coverage of backups, IndexedDB repository behavior, appearance preferences, install-platform guidance, and offline-readiness state; end-to-end setup, sample, household/task persistence, appearance persistence, board-card persistence, offline reload, mobile connectivity education, settings, erase-confirmation, and safe-arrangement flows across wall and phone browser profiles.
 - **Not performed:** user interviews, physical wall-device testing, full assistive-technology audit, name/trademark search, or legal review.
 
 ## Filled assumptions

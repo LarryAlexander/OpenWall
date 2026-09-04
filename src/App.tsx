@@ -61,6 +61,13 @@ import {
   type StartTourEventDetail,
 } from "./guideState";
 import { createHousehold, createSampleHousehold } from "./sample";
+import { InstallEducation } from "./InstallEducation";
+import {
+  isRunningStandalone,
+  loadOfflineReadiness,
+  rememberOfflineReadiness,
+  type BeforeInstallPromptEvent,
+} from "./install";
 import { WhatsNewNotice } from "./WhatsNewNotice";
 import type {
   AppearancePreferences,
@@ -98,7 +105,17 @@ function Avatar({ member, small = false }: { member: HouseholdMember; small?: bo
   );
 }
 
-function Welcome({ onSample, onSetup }: { onSample: () => void; onSetup: () => void }) {
+function Welcome({
+  onSample,
+  onSetup,
+  online,
+  offlineReady,
+}: {
+  onSample: () => void;
+  onSetup: () => void;
+  online: boolean;
+  offlineReady: boolean;
+}) {
   return (
     <main className="welcome-shell">
       <section className="welcome-panel" aria-labelledby="welcome-title">
@@ -126,6 +143,7 @@ function Welcome({ onSample, onSetup }: { onSample: () => void; onSetup: () => v
               <strong>No account needed.</strong> Nothing is sent to a server.
             </span>
           </div>
+          <InstallEducation online={online} offlineReady={offlineReady} compact />
         </div>
         <div className="welcome-preview" aria-label="Preview of the OpenWall Today board">
           <div className="preview-date">
@@ -699,7 +717,11 @@ function TodayBoard({
   const next = events.find((item) => parseISO(item.endsAt) > today);
 
   useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(widgets));
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(widgets));
+    } catch {
+      // Keep the active board usable when browser storage is blocked or full.
+    }
   }, [storageKey, widgets]);
 
   const updateWidget = (widgetId: string, patch: Partial<BoardWidget>) =>
@@ -1193,6 +1215,11 @@ function SettingsView({
   appearance,
   onAppearanceChange,
   onAppearanceReset,
+  online,
+  offlineReady,
+  installPrompt,
+  installed,
+  onInstall,
 }: {
   snapshot: HouseholdSnapshot;
   onImport: (file: File) => void;
@@ -1206,6 +1233,11 @@ function SettingsView({
   appearance: AppearancePreferences;
   onAppearanceChange: (next: AppearancePreferences) => void;
   onAppearanceReset?: () => void;
+  online: boolean;
+  offlineReady: boolean;
+  installPrompt: BeforeInstallPromptEvent | null;
+  installed: boolean;
+  onInstall: () => Promise<void>;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const exportData = () => {
@@ -1237,6 +1269,13 @@ function SettingsView({
           onDismiss={onDismissTip}
         />
       )}
+      <InstallEducation
+        online={online}
+        offlineReady={offlineReady}
+        installPrompt={installPrompt}
+        installed={installed}
+        onInstall={onInstall}
+      />
       <AppearanceSection
         preferences={appearance}
         onChange={onAppearanceChange}
@@ -1347,7 +1386,7 @@ function SettingsView({
         </section>
       </div>
       <footer className="settings-footer">
-        <strong>OpenWall 0.1.0</strong>
+        <strong>OpenWall {LATEST_RELEASE.version}</strong>
         <span>Apache-2.0 · Open source · Local first</span>
       </footer>
     </div>
@@ -1371,7 +1410,9 @@ export default function App() {
     action: string;
     run: () => void;
   } | null>(null);
-  const [offlineReady, setOfflineReady] = useState(false);
+  const [offlineReady, setOfflineReady] = useState(() => loadOfflineReadiness());
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installed, setInstalled] = useState(() => isRunningStandalone());
   const [update, setUpdate] = useState<(() => Promise<void>) | null>(null);
   const [online, setOnline] = useState(navigator.onLine);
   const [guideState, setGuideState] = useState<GuideState>(() => loadGuideState());
@@ -1441,6 +1482,13 @@ export default function App() {
     if (update) {
       await update();
     }
+  };
+
+  const handleInstall = async () => {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    const choice = await installPrompt.userChoice;
+    if (choice.outcome === "accepted") setInstallPrompt(null);
   };
 
   useEffect(() => {
@@ -1587,18 +1635,34 @@ export default function App() {
   useEffect(() => {
     const goOnline = () => setOnline(true);
     const goOffline = () => setOnline(false);
-    const ready = () => setOfflineReady(true);
+    const ready = () => {
+      rememberOfflineReadiness();
+      setOfflineReady(true);
+    };
+    const captureInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+    };
+    const handleInstalled = () => {
+      setInstalled(true);
+      setInstallPrompt(null);
+    };
     const updateReady = (event: Event) =>
       setUpdate(() => (event as CustomEvent<() => Promise<void>>).detail);
     window.addEventListener("online", goOnline);
     window.addEventListener("offline", goOffline);
     window.addEventListener("openwall:offline-ready", ready);
     window.addEventListener("openwall:update-ready", updateReady);
+    window.addEventListener("beforeinstallprompt", captureInstallPrompt);
+    window.addEventListener("appinstalled", handleInstalled);
+    void window.navigator.serviceWorker?.ready.then(ready).catch(() => undefined);
     return () => {
       window.removeEventListener("online", goOnline);
       window.removeEventListener("offline", goOffline);
       window.removeEventListener("openwall:offline-ready", ready);
       window.removeEventListener("openwall:update-ready", updateReady);
+      window.removeEventListener("beforeinstallprompt", captureInstallPrompt);
+      window.removeEventListener("appinstalled", handleInstalled);
     };
   }, []);
 
@@ -1628,6 +1692,8 @@ export default function App() {
       <Welcome
         onSample={() => saveSnapshot(createSampleHousehold())}
         onSetup={() => setSetup(true)}
+        online={online}
+        offlineReady={offlineReady}
       />
     );
   if (!snapshot && setup)
@@ -1835,6 +1901,11 @@ export default function App() {
             appearance={appearance}
             onAppearanceChange={handleAppearanceChange}
             onAppearanceReset={handleAppearanceReset}
+            online={online}
+            offlineReady={offlineReady}
+            installPrompt={installPrompt}
+            installed={installed}
+            onInstall={handleInstall}
           />
         )}
       </main>

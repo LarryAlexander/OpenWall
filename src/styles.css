@@ -2024,6 +2024,394 @@ fieldset {
   }
 }
 
+/* ==========================================================================
+   Mobile installation and connectivity education
+   ========================================================================== */
+
+.mobile-welcome-guide {
+  display: none;
+}
+
+.install-section {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  padding: clamp(20px, 3vw, 32px);
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.install-section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.install-section-header > div:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+
+.install-section-header h2,
+.install-step-heading h3 {
+  margin: 0;
+  color: var(--ink);
+}
+
+.install-section-header h2 {
+  font-size: clamp(1.3rem, 2vw, 1.7rem);
+  letter-spacing: -0.02em;
+}
+
+.install-section-header > div:nth-child(2) > p:last-child {
+  color: var(--ink-muted);
+  margin: 6px 0 0;
+  line-height: 1.45;
+}
+
+.install-heading-icon,
+.mobile-welcome-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: var(--md-sys-color-primary-container);
+  color: var(--green);
+}
+
+.install-heading-icon svg,
+.mobile-welcome-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.connection-pill {
+  min-height: 34px;
+  border-radius: 999px;
+  padding: 6px 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.connection-pill.online {
+  background: #dce9df;
+  color: #23483e;
+}
+
+.connection-pill.offline {
+  background: #f5e2c1;
+  color: #6d4a10;
+}
+
+.connection-pill svg {
+  width: 15px;
+  height: 15px;
+}
+
+.install-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.install-step-card {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  background: var(--surface-muted);
+}
+
+.install-step-number {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--green);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.install-step-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding-right: 28px;
+  margin-bottom: 14px;
+}
+
+.install-step-heading > svg {
+  width: 21px;
+  height: 21px;
+  color: var(--green);
+  flex-shrink: 0;
+}
+
+.install-step-heading .eyebrow {
+  margin: 0 0 2px;
+}
+
+.install-step-heading h3 {
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.install-step-card > p,
+.install-instruction-list,
+.offline-steps {
+  color: var(--ink-muted);
+  font-size: 0.83rem;
+  line-height: 1.5;
+}
+
+.install-platform-label {
+  margin: 0 0 8px;
+}
+
+.install-instruction-list,
+.offline-steps {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.install-instruction-list li + li,
+.offline-steps li + li {
+  margin-top: 7px;
+}
+
+.install-fine-print,
+.install-warning {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 0.73rem !important;
+}
+
+.install-warning {
+  color: #795319 !important;
+}
+
+.install-now-button {
+  width: 100%;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.install-success,
+.offline-readiness-card {
+  border-radius: 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+}
+
+.install-success {
+  background: #dce9df;
+  color: #23483e;
+  font-size: 0.83rem;
+  font-weight: 700;
+}
+
+.install-success svg,
+.offline-readiness-card > svg {
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+}
+
+.connectivity-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.connectivity-flow > div {
+  min-width: 0;
+  min-height: 108px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 12px 9px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 4px;
+}
+
+.connectivity-flow div > svg {
+  width: 22px;
+  height: 22px;
+  color: var(--green);
+}
+
+.connectivity-flow strong {
+  font-size: 0.78rem;
+}
+
+.connectivity-flow span {
+  color: var(--ink-muted);
+  font-size: 0.68rem;
+  line-height: 1.3;
+}
+
+.flow-arrow {
+  width: 16px;
+  height: 16px;
+  color: var(--ink-muted);
+}
+
+.connectivity-facts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 9px;
+}
+
+.connectivity-facts li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--ink-muted);
+  font-size: 0.77rem;
+  line-height: 1.4;
+}
+
+.connectivity-facts svg {
+  width: 16px;
+  height: 16px;
+  color: var(--green);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.offline-readiness-card {
+  margin-bottom: 13px;
+}
+
+.offline-readiness-card.ready {
+  background: #dce9df;
+  color: #23483e;
+}
+
+.offline-readiness-card.waiting {
+  background: #f5e9d7;
+  color: #6b4b22;
+}
+
+.offline-readiness-card div {
+  display: grid;
+  gap: 2px;
+}
+
+.offline-readiness-card strong {
+  font-size: 0.82rem;
+}
+
+.offline-readiness-card span {
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+@media (max-width: 1100px) {
+  .install-steps-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .install-section {
+    padding: 18px 14px;
+  }
+
+  .install-section-header {
+    flex-wrap: wrap;
+  }
+
+  .connection-pill {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .install-step-card {
+    padding: 18px 14px;
+  }
+}
+
+@media (max-width: 760px) {
+  .mobile-welcome-guide {
+    display: block;
+    margin-top: 20px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: var(--surface-muted);
+  }
+
+  .mobile-welcome-heading {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+
+  .mobile-welcome-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  .mobile-welcome-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .mobile-welcome-heading .eyebrow,
+  .mobile-welcome-heading h2 {
+    margin: 0;
+  }
+
+  .mobile-welcome-heading h2 {
+    font-size: 1rem;
+    line-height: 1.25;
+  }
+
+  .mobile-welcome-guide > p,
+  .mobile-welcome-details p {
+    color: var(--ink-muted);
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+
+  .mobile-learn-button {
+    padding-left: 0;
+  }
+
+  .mobile-welcome-details {
+    border-top: 1px solid var(--line);
+    margin-top: 8px;
+    padding-top: 4px;
+  }
+}
+
 /* Countdown Editor Dialog */
 .countdown-dialog {
   max-width: 640px;
@@ -2345,11 +2733,12 @@ fieldset {
   .sidebar nav {
     display: grid;
     grid-template-columns: 1fr;
-    width: 50%;
+    width: 33.333%;
   }
   .sidebar-bottom {
-    width: 50%;
+    width: 66.667%;
     margin: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .sidebar nav button,
   .sidebar-bottom button {

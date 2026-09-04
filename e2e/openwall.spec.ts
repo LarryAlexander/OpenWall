@@ -38,6 +38,30 @@ test("adds a card and enters safe arrange mode", async ({ page }) => {
     addedNote.getByRole("button", { name: "Move note card", exact: true }),
   ).toBeVisible();
   await expect(page.getByText(/drag cards by their top edge/i)).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByText("Add your note here")).toBeVisible();
+});
+
+test("keeps mobile navigation reachable and remembers offline readiness", async ({ page }) => {
+  await page.getByRole("button", { name: /explore a sample home/i }).click();
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.getByRole("button", { name: "Settings" }).click();
+
+  await expect(page.getByRole("heading", { name: "Install & connectivity" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Each browser is its own OpenWall" }),
+  ).toBeVisible();
+  await expect(page.getByText(/phones do not sync with each other/i)).toBeVisible();
+  await expect(page.getByText(/clearing site data or removing browser storage/i)).toBeVisible();
+  await expect(page.getByText("Offline app files are ready")).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("openwall-offline-ready-v1")))
+    .toBe("true");
+
+  await page.reload();
+  await page.getByRole("button", { name: "Settings" }).click();
+  await expect(page.getByText("Offline app files are ready")).toBeVisible();
 });
 
 test("shows settings and requires confirmation before erase", async ({ page }) => {

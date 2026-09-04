@@ -24,7 +24,9 @@ OpenWall is not intended to copy Skylight's branding or interface. It addresses 
 - locally created schedule items
 - assignable, completable household tasks
 - automatic local persistence
-- installable PWA behavior
+- device-aware installation guidance for iPhone, iPad, Android, computers, and wall displays
+- a plain-language explanation of what GitHub Pages, local browser storage, and offline mode each do
+- installable PWA behavior with remembered offline-readiness status
 - verified offline reload after the first successful visit
 - responsive layouts for a wall display, tablet, and phone
 - export and import of household data as a local backup

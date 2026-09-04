@@ -297,10 +297,12 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
       "cache",
     ],
     steps: [
-      "After loading OpenWall once online, the application shell is cached on this device.",
+      "While online, GitHub Pages delivers OpenWall’s static app files and the browser checks for published updates. OpenWall has no application account or household-data server.",
+      "After loading OpenWall once online, the application shell is cached on this device when the browser supports the required service-worker features.",
       "Household members, schedule items, and tasks are saved in IndexedDB; board layout and countdown settings currently use separate local browser storage.",
       "If your home internet drops after the app has been cached, a gentle banner confirms that saved local features remain available.",
       "You can continue adding, editing, and checking off tasks normally while offline.",
+      "Each browser keeps a separate household. Changes made on one phone do not automatically sync to another device in this version.",
     ],
     action: {
       type: "tour-step",
@@ -310,21 +312,36 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
   },
   {
     id: "installing-pwa",
-    title: "Installing OpenWall on a wall tablet or kiosk",
+    title: "Installing OpenWall on a phone, tablet, or wall display",
     summary:
       "Run OpenWall as a standalone app or dedicated full-screen appliance on old tablets, laptops, or monitors.",
     categoryId: "offline-use-and-installation",
-    keywords: ["install", "pwa", "kiosk", "wall", "tablet", "fullscreen", "screen", "display"],
+    keywords: [
+      "install",
+      "pwa",
+      "iphone",
+      "ipad",
+      "android",
+      "home screen",
+      "safari",
+      "chrome",
+      "kiosk",
+      "wall",
+      "tablet",
+      "fullscreen",
+    ],
     steps: [
-      "In modern browsers (Chrome, Edge, Safari), look for the 'Install OpenWall' or 'Add to Home Screen' option.",
+      "Open Settings and find Install & connectivity for instructions tailored to the device you are using.",
+      "On iPhone or iPad, open OpenWall in Safari, tap Share, choose Add to Home Screen, then tap Add.",
+      "On Android, open OpenWall in Chrome and choose Install app or Add to Home screen from the browser menu. When Chrome offers a direct install button, OpenWall displays it in Settings.",
+      "On Chrome or Edge for computers and wall displays, use the address-bar install icon or the browser’s Install OpenWall menu item.",
       "Once installed, OpenWall opens in its own window without browser navigation toolbars.",
-      "Tap the monitor icon in the top toolbar to trigger full-screen presentation mode for dedicated wall kiosks.",
-      "An older tablet can be a useful home display when its browser supports the required PWA features and its power settings keep the screen available.",
+      "Install availability depends on the operating system and browser version. A normal bookmark remains a valid fallback.",
     ],
     action: {
       type: "navigate",
-      label: "Go to Today board",
-      targetView: "today",
+      label: "Open Install Settings",
+      targetView: "settings",
     },
   },
 
@@ -469,6 +486,21 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
 ];
 
 export const RELEASE_NOTES: ReleaseNote[] = [
+  {
+    version: "0.3.0",
+    releasedAt: "2026-09-03",
+    title: "OpenWall 0.3.0: Mobile Setup That Tells the Truth",
+    summary:
+      "A clearer mobile welcome, device-aware installation steps, live connectivity status, and plain-language explanations make OpenWall easier to trust and install away from the wall display.",
+    highlights: [
+      "A mobile first-run card explains where setup and install help live before a household is created.",
+      "Install & connectivity provides iPhone/iPad, Android, and desktop or wall-display instructions.",
+      "Supported Chromium browsers can offer a direct Install OpenWall action.",
+      "A three-part explanation distinguishes static GitHub Pages delivery from household data stored locally in the browser.",
+      "Offline-readiness guidance, per-device persistence limits, backup boundaries, and the lack of cross-device sync are stated explicitly.",
+    ],
+    relatedArticleIds: ["installing-pwa", "offline-resilience", "local-privacy-backup"],
+  },
   {
     version: "0.2.0",
     releasedAt: "2026-09-03",
