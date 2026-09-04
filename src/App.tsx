@@ -754,9 +754,13 @@ function TodayBoard({
       });
       return;
     }
+    const nextWidth = Math.max(12, Math.min(94, widget.w + delta));
+    const nextHeight = Math.max(18, Math.min(94, widget.h + delta));
     updateWidget(widget.id, {
-      w: Math.max(12, Math.min(96 - widget.x, widget.w + delta)),
-      h: Math.max(18, Math.min(96 - widget.y, widget.h + delta)),
+      x: Math.min(widget.x, 96 - nextWidth),
+      y: Math.min(widget.y, 96 - nextHeight),
+      w: nextWidth,
+      h: nextHeight,
     });
   };
 
