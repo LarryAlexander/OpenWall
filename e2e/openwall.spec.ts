@@ -10,8 +10,14 @@ async function expectNoHorizontalOverflow(page: import("@playwright/test").Page)
     document: document.documentElement.scrollWidth,
     body: document.body.scrollWidth,
   }));
-  expect(widths.document).toBeLessThanOrEqual(widths.viewport);
-  expect(widths.body).toBeLessThanOrEqual(widths.viewport);
+  expect(
+    widths.document,
+    `document width ${widths.document}px exceeded the ${widths.viewport}px viewport`,
+  ).toBeLessThanOrEqual(widths.viewport);
+  expect(
+    widths.body,
+    `body width ${widths.body}px exceeded the ${widths.viewport}px viewport`,
+  ).toBeLessThanOrEqual(widths.viewport);
 }
 
 test("opens the fictional household and completes a task", async ({ page }) => {
