@@ -119,6 +119,7 @@ test("reorders cards by dragging in the responsive board", async ({ page }) => {
     name: "Move schedule card",
     exact: true,
   });
+  await schedule.hover();
   const taskBox = await tasks.boundingBox();
   const gripBox = await scheduleGrip.boundingBox();
   expect(taskBox).not.toBeNull();
@@ -151,9 +152,15 @@ test("offers reliable responsive manipulation controls and persists their change
   const initialHeight = await schedule.evaluate((card) => card.getBoundingClientRect().height);
   const grip = schedule.getByRole("button", { name: "Move schedule card", exact: true });
 
+  await expect(schedule.locator(".widget-controls")).toHaveCSS("opacity", "0");
+  await schedule.click({ position: { x: 12, y: 12 } });
+  await expect(schedule.locator(".widget-controls")).toHaveCSS("opacity", "1");
   await grip.click();
   await schedule.getByRole("button", { name: "Lock card", exact: true }).click();
   await expect(grip).toBeDisabled();
+  expect(await schedule.evaluate((card) => getComputedStyle(card, "::after").content)).not.toBe(
+    "none",
+  );
   await schedule.getByRole("button", { name: "Unlock card", exact: true }).click();
   await expect(grip).toBeEnabled();
 
@@ -171,6 +178,7 @@ test("offers reliable responsive manipulation controls and persists their change
   const note = page.locator('[data-widget-id="note"]');
   await note.click();
   await note.getByRole("button", { name: "Remove note card", exact: true }).click();
+  await expect(note).toHaveClass(/is-removing/);
   await expect(page.locator('[data-widget-id="note"]')).toHaveCount(0);
   await page.reload();
   await expect(page.locator('[data-widget-id="note"]')).toHaveCount(0);
@@ -183,6 +191,7 @@ test("moves and resizes cards on a wall-sized board", async ({ page }) => {
   const schedule = page.locator('[data-widget-id="schedule"]');
   const initialBox = await schedule.boundingBox();
   const grip = schedule.getByRole("button", { name: "Move schedule card", exact: true });
+  await schedule.hover();
   const gripBox = await grip.boundingBox();
   expect(initialBox).not.toBeNull();
   expect(gripBox).not.toBeNull();

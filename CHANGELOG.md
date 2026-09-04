@@ -6,6 +6,8 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 
 ### Added
 
+- A physical tear-off animation when removing a card, with reduced-motion support.
+- Extra visible tacks on locked cards so their protected state reads naturally on the corkboard.
 - Touch-friendly card reordering by direct dragging on tablet and phone layouts.
 - Reliable smaller and larger controls on every layout.
 - Automated overflow coverage for common iPad portrait and landscape sizes.
@@ -13,6 +15,7 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 
 ### Changed
 
+- Card manipulation controls now stay hidden until hover, keyboard focus, or touch selection.
 - Removed the separate Arrange mode: cards can now be moved directly from their persistent grip, while selecting or hovering reveals size, lock, and remove controls.
 - Tablet and phone cards now reorder by direct dragging instead of manual up/down buttons.
 - Responsive corkboard layouts now fit the available screen width without forcing horizontal clipping.

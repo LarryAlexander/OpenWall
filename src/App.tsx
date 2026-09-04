@@ -685,6 +685,7 @@ function TodayBoard({
   const storageKey = `openwall-board-${snapshot.household.id}`;
   const [draggingWidgetId, setDraggingWidgetId] = useState<string | null>(null);
   const [activeWidgetId, setActiveWidgetId] = useState<string | null>(null);
+  const [removingWidgetId, setRemovingWidgetId] = useState<string | null>(null);
   const [trayOpen, setTrayOpen] = useState(false);
   const [cardJustAdded, setCardJustAdded] = useState(false);
   const [editingCountdown, setEditingCountdown] = useState<BoardWidget | null>(null);
@@ -730,6 +731,23 @@ function TodayBoard({
     setWidgets((current) =>
       current.map((widget) => (widget.id === widgetId ? { ...widget, ...patch } : widget)),
     );
+
+  const removeWidget = (widgetId: string) => {
+    if (removingWidgetId) return;
+    setRemovingWidgetId(widgetId);
+    setActiveWidgetId(widgetId);
+    const reduceMotion =
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      document.documentElement.dataset.motion === "off";
+    window.setTimeout(
+      () => {
+        setWidgets((current) => current.filter((item) => item.id !== widgetId));
+        setRemovingWidgetId(null);
+        setActiveWidgetId(null);
+      },
+      reduceMotion ? 40 : 520,
+    );
+  };
 
   const resizeWidgetBy = (widget: BoardWidget, element: HTMLElement | null, delta: number) => {
     if (window.matchMedia("(max-width: 1279px)").matches) {
@@ -1051,7 +1069,7 @@ function TodayBoard({
           <article
             key={widget.id}
             data-widget-id={widget.id}
-            className={`board-widget widget-${widget.type} ${widget.locked ? "is-locked" : ""} ${draggingWidgetId === widget.id ? "is-dragging" : ""} ${activeWidgetId === widget.id ? "is-active-widget" : ""} ${widget.stackedHeight ? "has-stacked-height" : ""}`}
+            className={`board-widget widget-${widget.type} ${widget.locked ? "is-locked" : ""} ${draggingWidgetId === widget.id ? "is-dragging" : ""} ${removingWidgetId === widget.id ? "is-removing" : ""} ${activeWidgetId === widget.id ? "is-active-widget" : ""} ${widget.stackedHeight ? "has-stacked-height" : ""}`}
             onPointerDownCapture={() => {
               setActiveWidgetId(widget.id);
             }}
@@ -1118,9 +1136,8 @@ function TodayBoard({
               </button>
               {widget.type !== "welcome" && (
                 <button
-                  onClick={() =>
-                    setWidgets((current) => current.filter((item) => item.id !== widget.id))
-                  }
+                  onClick={() => removeWidget(widget.id)}
+                  disabled={Boolean(removingWidgetId)}
                   aria-label={`Remove ${widget.type} card`}
                 >
                   <X />
@@ -1222,8 +1239,8 @@ function TodayBoard({
             setEditingCountdown(null);
           }}
           onDelete={(widgetId) => {
-            setWidgets((current) => current.filter((item) => item.id !== widgetId));
             setEditingCountdown(null);
+            removeWidget(widgetId);
           }}
           onClose={() => setEditingCountdown(null)}
         />
