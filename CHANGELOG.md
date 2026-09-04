@@ -7,6 +7,7 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 ### Added
 
 - Touch-friendly card reordering in Arrange mode on tablet and phone layouts.
+- Responsive Arrange controls for moving cards up or down and making them shorter or taller when gesture dragging is inconvenient.
 - Automated overflow coverage for common iPad portrait and landscape sizes.
 - Maintainer guidance for deciding when and how to update this changelog.
 
@@ -18,6 +19,7 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 ### Fixed
 
 - Corrected an end-to-end test selector that caused a GitHub Actions run to fail after opening Guide.
+- Made touch dragging use a larger grab surface and resilient pointer handling in Safari and embedded browsers.
 
 ## [0.3.0] - 2026-09-03
 

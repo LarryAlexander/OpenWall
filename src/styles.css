@@ -1672,6 +1672,9 @@ fieldset {
   box-shadow: 0 5px 13px rgba(25, 31, 28, 0.25);
   animation: widgetControlsEntry var(--motion-duration-short) var(--motion-easing-emphasized);
 }
+.stacked-widget-control {
+  display: none !important;
+}
 .widget-controls button {
   width: 32px;
   border: 0;
@@ -1684,6 +1687,12 @@ fieldset {
   margin-right: auto;
   cursor: grab;
   touch-action: none;
+}
+.widget-drag-handle,
+.widget-controls {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .widget-controls svg {
   width: 15px;
@@ -2666,7 +2675,7 @@ fieldset {
     left: auto !important;
     top: auto !important;
     width: 100% !important;
-    height: auto !important;
+    height: var(--stacked-card-height, auto) !important;
     min-height: 170px;
     transform: none !important;
   }
@@ -2679,6 +2688,9 @@ fieldset {
   .widget-controls {
     top: -26px;
     height: 44px;
+  }
+  .stacked-widget-control {
+    display: grid !important;
   }
   .widget-controls button {
     width: 44px;
@@ -2697,6 +2709,9 @@ fieldset {
   .widget-meal,
   .widget-photo {
     min-height: 220px;
+  }
+  .board-widget.has-stacked-height {
+    min-height: 150px;
   }
   .widget-picker {
     grid-template-columns: repeat(2, 1fr);

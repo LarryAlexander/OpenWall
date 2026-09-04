@@ -83,6 +83,7 @@ export interface BoardWidget {
   tilt: number;
   text?: string;
   locked?: boolean;
+  stackedHeight?: number;
   countdown?: CountdownWidgetConfig;
 }
 

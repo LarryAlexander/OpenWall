@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
+  ArrowDown,
+  ArrowUp,
   CalendarDays,
   CheckCircle2,
   ChevronRight,
@@ -14,6 +16,7 @@ import {
   ListChecks,
   Lock,
   Menu,
+  Minus,
   Monitor,
   Plus,
   RotateCcw,
@@ -730,10 +733,33 @@ function TodayBoard({
       current.map((widget) => (widget.id === widgetId ? { ...widget, ...patch } : widget)),
     );
 
+  const moveWidgetBy = (widgetId: string, offset: -1 | 1) => {
+    setWidgets((current) => {
+      const currentIndex = current.findIndex((widget) => widget.id === widgetId);
+      const nextIndex = currentIndex + offset;
+      if (currentIndex < 0 || nextIndex < 0 || nextIndex >= current.length) return current;
+      const reordered = [...current];
+      const [moved] = reordered.splice(currentIndex, 1);
+      reordered.splice(nextIndex, 0, moved);
+      return reordered;
+    });
+  };
+
+  const resizeStackedWidget = (widget: BoardWidget, element: HTMLElement | null, delta: number) => {
+    const currentHeight = widget.stackedHeight ?? element?.offsetHeight ?? 220;
+    updateWidget(widget.id, {
+      stackedHeight: Math.max(150, Math.min(720, currentHeight + delta)),
+    });
+  };
+
   const beginMove = (event: React.PointerEvent, widget: BoardWidget, resizing = false) => {
     if (!arranging || widget.locked || !boardRef.current) return;
     event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Pointer capture can be unavailable in older embedded browsers; document listeners still work.
+    }
     const board = boardRef.current.getBoundingClientRect();
     const start = { pointerX: event.clientX, pointerY: event.clientY, ...widget };
     const isStackedBoard = window.matchMedia("(max-width: 1279px)").matches;
@@ -786,20 +812,20 @@ function TodayBoard({
         draggedElement?.style.removeProperty("--drag-offset-y");
         setDraggingWidgetId(null);
       }
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", stop);
-      window.removeEventListener("pointercancel", cancel);
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", stop);
+      document.removeEventListener("pointercancel", cancel);
     };
     const cancel = () => {
       draggedElement?.style.removeProperty("--drag-offset-y");
       setDraggingWidgetId(null);
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", stop);
-      window.removeEventListener("pointercancel", cancel);
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", stop);
+      document.removeEventListener("pointercancel", cancel);
     };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", stop);
-    window.addEventListener("pointercancel", cancel);
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", stop);
+    document.addEventListener("pointercancel", cancel);
   };
 
   const addWidget = (type: BoardWidgetType) => {
@@ -1055,22 +1081,78 @@ function TodayBoard({
           <article
             key={widget.id}
             data-widget-id={widget.id}
-            className={`board-widget widget-${widget.type} ${widget.locked ? "is-locked" : ""} ${draggingWidgetId === widget.id ? "is-dragging" : ""}`}
+            className={`board-widget widget-${widget.type} ${widget.locked ? "is-locked" : ""} ${draggingWidgetId === widget.id ? "is-dragging" : ""} ${widget.stackedHeight ? "has-stacked-height" : ""}`}
             style={{
               left: `${widget.x}%`,
               top: `${widget.y}%`,
               width: `${widget.w}%`,
               height: `${widget.h}%`,
               transform: `rotate(${widget.tilt}deg)`,
+              ...(widget.stackedHeight
+                ? ({ "--stacked-card-height": `${widget.stackedHeight}px` } as React.CSSProperties)
+                : {}),
             }}
           >
             {arranging && (
-              <div className="widget-controls">
+              <div
+                className="widget-controls"
+                onPointerDown={(event) => {
+                  const actionButton = (event.target as HTMLElement).closest("button");
+                  if (actionButton && !actionButton.classList.contains("widget-drag-handle"))
+                    return;
+                  beginMove(event, widget);
+                }}
+              >
                 <button
-                  onPointerDown={(event) => beginMove(event, widget)}
+                  className="widget-drag-handle"
+                  disabled={widget.locked}
                   aria-label={`Move ${widget.type} card`}
                 >
                   <Grip />
+                </button>
+                <button
+                  className="stacked-widget-control"
+                  disabled={widget.locked}
+                  onClick={() => moveWidgetBy(widget.id, -1)}
+                  aria-label={`Move ${widget.type} card up`}
+                >
+                  <ArrowUp />
+                </button>
+                <button
+                  className="stacked-widget-control"
+                  disabled={widget.locked}
+                  onClick={() => moveWidgetBy(widget.id, 1)}
+                  aria-label={`Move ${widget.type} card down`}
+                >
+                  <ArrowDown />
+                </button>
+                <button
+                  className="stacked-widget-control"
+                  disabled={widget.locked}
+                  onClick={(event) =>
+                    resizeStackedWidget(
+                      widget,
+                      event.currentTarget.closest<HTMLElement>("[data-widget-id]"),
+                      -60,
+                    )
+                  }
+                  aria-label={`Make ${widget.type} card shorter`}
+                >
+                  <Minus />
+                </button>
+                <button
+                  className="stacked-widget-control"
+                  disabled={widget.locked}
+                  onClick={(event) =>
+                    resizeStackedWidget(
+                      widget,
+                      event.currentTarget.closest<HTMLElement>("[data-widget-id]"),
+                      60,
+                    )
+                  }
+                  aria-label={`Make ${widget.type} card taller`}
+                >
+                  <Plus />
                 </button>
                 <button
                   onClick={() => updateWidget(widget.id, { locked: !widget.locked })}

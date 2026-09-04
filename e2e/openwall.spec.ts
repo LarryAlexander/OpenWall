@@ -138,6 +138,100 @@ test("reorders cards by dragging in the responsive board", async ({ page }) => {
     .toEqual(["welcome", "tasks", "schedule", "note", "meal", "countdown", "photo"]);
 });
 
+test("offers reliable responsive manipulation controls and persists their changes", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 834, height: 1194 });
+  await page.getByRole("button", { name: /explore a sample home/i }).click();
+  await page.getByRole("button", { name: "Arrange", exact: true }).click();
+
+  const board = page.locator(".open-corkboard");
+  const schedule = board.locator('[data-widget-id="schedule"]');
+  const initialHeight = await schedule.evaluate((card) => card.getBoundingClientRect().height);
+  const moveDown = schedule.getByRole("button", { name: "Move schedule card down", exact: true });
+
+  await schedule.getByRole("button", { name: "Lock card", exact: true }).click();
+  await expect(moveDown).toBeDisabled();
+  await schedule.getByRole("button", { name: "Unlock card", exact: true }).click();
+  await expect(moveDown).toBeEnabled();
+
+  await moveDown.click();
+  await schedule.getByRole("button", { name: "Make schedule card shorter", exact: true }).click();
+
+  await expect
+    .poll(() =>
+      board
+        .locator("[data-widget-id]")
+        .evaluateAll((cards) => cards.map((card) => card.getAttribute("data-widget-id"))),
+    )
+    .toEqual(["welcome", "tasks", "schedule", "note", "meal", "countdown", "photo"]);
+  await expect
+    .poll(() => schedule.evaluate((card) => card.getBoundingClientRect().height))
+    .toBeLessThan(initialHeight);
+
+  await page.reload();
+  const savedSchedule = page.locator('[data-widget-id="schedule"]');
+  await expect
+    .poll(() => savedSchedule.evaluate((card) => card.getBoundingClientRect().height))
+    .toBeLessThan(initialHeight);
+  await expect
+    .poll(() =>
+      page
+        .locator(".open-corkboard [data-widget-id]")
+        .evaluateAll((cards) => cards.map((card) => card.getAttribute("data-widget-id"))),
+    )
+    .toEqual(["welcome", "tasks", "schedule", "note", "meal", "countdown", "photo"]);
+
+  await page.getByRole("button", { name: "Arrange", exact: true }).click();
+  await page
+    .locator('[data-widget-id="note"]')
+    .getByRole("button", { name: "Remove note card", exact: true })
+    .click();
+  await expect(page.locator('[data-widget-id="note"]')).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator('[data-widget-id="note"]')).toHaveCount(0);
+});
+
+test("moves and resizes cards on a wall-sized board", async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.getByRole("button", { name: /explore a sample home/i }).click();
+  await page.getByRole("button", { name: "Arrange", exact: true }).click();
+
+  const schedule = page.locator('[data-widget-id="schedule"]');
+  const initialBox = await schedule.boundingBox();
+  const grip = schedule.getByRole("button", { name: "Move schedule card", exact: true });
+  const gripBox = await grip.boundingBox();
+  expect(initialBox).not.toBeNull();
+  expect(gripBox).not.toBeNull();
+
+  await page.mouse.move(gripBox!.x + gripBox!.width / 2, gripBox!.y + gripBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(gripBox!.x + 90, gripBox!.y + 60, { steps: 6 });
+  await page.mouse.up();
+  await expect
+    .poll(() => schedule.boundingBox())
+    .toEqual(
+      expect.objectContaining({
+        x: expect.any(Number),
+        y: expect.any(Number),
+      }),
+    );
+  const movedBox = await schedule.boundingBox();
+  expect(movedBox!.x).toBeGreaterThan(initialBox!.x + 30);
+  expect(movedBox!.y).toBeGreaterThan(initialBox!.y + 20);
+
+  const resizeHandle = schedule.getByRole("button", { name: "Resize schedule card", exact: true });
+  const resizeBox = await resizeHandle.boundingBox();
+  expect(resizeBox).not.toBeNull();
+  await page.mouse.move(resizeBox!.x + resizeBox!.width / 2, resizeBox!.y + resizeBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(resizeBox!.x + 80, resizeBox!.y + 60, { steps: 6 });
+  await page.mouse.up();
+  const enlargedBox = await schedule.boundingBox();
+  expect(enlargedBox!.width).toBeGreaterThan(movedBox!.width + 30);
+  expect(enlargedBox!.height).toBeGreaterThan(movedBox!.height + 20);
+});
+
 test("shows settings and requires confirmation before erase", async ({ page }) => {
   await page.getByRole("button", { name: /explore a sample home/i }).click();
   await page.getByRole("button", { name: "Settings" }).click();
