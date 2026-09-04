@@ -152,6 +152,7 @@ test("offers reliable responsive manipulation controls and persists their change
   const initialHeight = await schedule.evaluate((card) => card.getBoundingClientRect().height);
   const grip = schedule.getByRole("button", { name: "Move schedule card", exact: true });
 
+  await page.mouse.move(1, 1);
   await expect(schedule.locator(".widget-controls")).toHaveCSS("opacity", "0");
   await schedule.click({ position: { x: 12, y: 12 } });
   await expect(schedule.locator(".widget-controls")).toHaveCSS("opacity", "1");
