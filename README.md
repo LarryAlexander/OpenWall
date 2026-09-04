@@ -61,6 +61,7 @@ Run the complete local verification suite with `pnpm lint`, `pnpm test`, `pnpm b
 - [Next phase: a living household board](docs/NEXT_PHASE.md)
 - [Guidance truth and misleading-claim guardrails](docs/GUIDANCE_TRUTH_POLICY.md)
 - [Product status](docs/PRODUCT_STATUS.md)
+- [Code and research audit — 2026-09-04](docs/audits/openwall-2026-09-04/CODE_AND_RESEARCH_AUDIT.md)
 
 ## Current decision gate
 
