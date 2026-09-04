@@ -21,6 +21,7 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 - Corrected an end-to-end test selector that caused a GitHub Actions run to fail after opening Guide.
 - Made touch dragging use a larger grab surface and resilient pointer handling in Safari and embedded browsers.
 - Kept the actively manipulated card above overlapping neighbors so drag and resize handles remain reachable.
+- Kept freeform cards inside safe board bounds so resize handles cannot become clipped at an edge.
 
 ## [0.3.0] - 2026-09-03
 

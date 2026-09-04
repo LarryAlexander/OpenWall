@@ -783,12 +783,12 @@ function TodayBoard({
       if (resizing) {
         updateWidget(widget.id, {
           w: Math.max(12, Math.min(96 - widget.x, start.w + dx)),
-          h: Math.max(18, Math.min(98 - widget.y, start.h + dy)),
+          h: Math.max(18, Math.min(96 - widget.y, start.h + dy)),
         });
       } else {
         updateWidget(widget.id, {
-          x: Math.max(0, Math.min(100 - widget.w, start.x + dx)),
-          y: Math.max(0, Math.min(100 - widget.h, start.y + dy)),
+          x: Math.max(0, Math.min(98 - widget.w, start.x + dx)),
+          y: Math.max(0, Math.min(96 - widget.h, start.y + dy)),
         });
       }
     };
