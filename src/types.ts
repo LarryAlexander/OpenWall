@@ -142,3 +142,27 @@ export interface ReleaseNote {
   highlights: string[];
   relatedArticleIds: string[];
 }
+
+export type ColorThemePreset =
+  "warm-cork" | "sage-grove" | "terracotta" | "desert-sand" | "ocean-mist" | "wild-plum";
+
+export type BoardBackground =
+  "classic-cork" | "fine-cork" | "kraft-paper" | "soft-linen" | "minimal-canvas";
+
+export type CardCornerStyle = "sharp" | "subtle" | "natural" | "rounded" | "pill";
+
+export type TextScale = "compact" | "default" | "comfortable" | "large";
+
+export type ColorMode = "system" | "light" | "dark";
+
+export type MotionPreference = "full" | "gentle" | "off";
+
+export interface AppearancePreferences {
+  schemaVersion: 1;
+  colorTheme: ColorThemePreset;
+  boardBackground: BoardBackground;
+  cornerStyle: CardCornerStyle;
+  textScale: TextScale;
+  colorMode: ColorMode;
+  motion: MotionPreference;
+}

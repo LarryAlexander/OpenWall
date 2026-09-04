@@ -47,6 +47,24 @@ test("shows settings and requires confirmation before erase", async ({ page }) =
   await expect(page.getByText("The River House")).toBeHidden();
 });
 
+test("personalizes the board and keeps appearance on this device", async ({ page }) => {
+  await page.getByRole("button", { name: /explore a sample home/i }).click();
+  await page.getByRole("button", { name: "Settings" }).click();
+
+  await page.getByRole("radio", { name: /ocean mist/i }).click();
+  await page.getByRole("radio", { name: /^dark/i }).click();
+  await page.getByRole("radio", { name: /^gentle/i }).click();
+
+  await expect(page.locator("html")).toHaveAttribute("data-color-theme", "ocean-mist");
+  await expect(page.locator("html")).toHaveAttribute("data-color-mode", "dark");
+  await expect(page.locator("html")).toHaveAttribute("data-motion", "gentle");
+
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-color-theme", "ocean-mist");
+  await expect(page.locator("html")).toHaveAttribute("data-color-mode", "dark");
+  await expect(page.locator("html")).toHaveAttribute("data-motion", "gentle");
+});
+
 test("reopens the saved household while offline", async ({ page, browserName }) => {
   test.skip(browserName === "webkit", "Playwright WebKit cannot reliably reload an offline page.");
   await page.getByRole("button", { name: /explore a sample home/i }).click();

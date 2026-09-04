@@ -87,6 +87,39 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
       stepIndex: 0,
     },
   },
+  {
+    id: "appearance-and-themes",
+    title: "Personalizing themes, board textures, and motion",
+    summary:
+      "Select color presets, corkboard backgrounds, card corner styles, text scale, and motion settings locally on this screen.",
+    categoryId: "getting-started",
+    keywords: [
+      "appearance",
+      "theme",
+      "dark mode",
+      "light mode",
+      "corkboard",
+      "background",
+      "corners",
+      "text scale",
+      "motion",
+      "personalization",
+      "presets",
+    ],
+    steps: [
+      "Open Settings from the main navigation to access the Appearance & board display section.",
+      "Switch between Light, Dark, or System mode, and choose from six warm color presets inspired by natural home materials.",
+      "Select a corkboard surface: Classic Cork, Fine Grain, Warm Kraft Paper, Soft Linen, or Minimal Canvas.",
+      "Fine-tune card corner styles from crisp to soft pill, and scale text for comfort on wall displays or tablets.",
+      "Select Full, Gentle, or Off motion to tailor transitions and respect device motion sensitivity.",
+      "All appearance choices are kept strictly on this device and are excluded from household backup files.",
+    ],
+    action: {
+      type: "navigate",
+      label: "Open Appearance Settings",
+      targetView: "settings",
+    },
+  },
 
   // 2. Cards and countdowns
   {
@@ -437,6 +470,21 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.2.0",
+    releasedAt: "2026-09-03",
+    title: "OpenWall 0.2.0: Make the Board Yours",
+    summary:
+      "A device-local appearance studio brings warm themes, board surfaces, display modes, readable text scaling, and accessible motion controls to the family corkboard.",
+    highlights: [
+      "Six warm color themes and five tactile board surfaces preserve OpenWall’s corkboard character.",
+      "Light, dark, and system display modes adapt the board to its room and device.",
+      "Card-corner and text-size controls tune the board for playful, compact, or across-the-room viewing.",
+      "Full, gentle, and off motion settings control purposeful transitions while the operating system’s reduced-motion preference always takes priority.",
+      "Appearance stays on this device and remains separate from household backups.",
+    ],
+    relatedArticleIds: ["appearance-and-themes", "offline-resilience", "local-privacy-backup"],
+  },
+  {
     version: "0.1.0",
     releasedAt: "2026-09-03",
     title: "OpenWall 0.1.0: The Living Corkboard & Guide Foundation",
@@ -463,6 +511,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
 export const LATEST_RELEASE: ReleaseNote = RELEASE_NOTES[0];
 
 export const SUGGESTED_SEARCH_TOPICS: string[] = [
+  "Appearance",
   "Countdown",
   "Arrange cards",
   "Backups",

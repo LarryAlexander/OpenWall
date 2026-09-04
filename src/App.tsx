@@ -15,7 +15,6 @@ import {
   Lock,
   Menu,
   Monitor,
-  Moon,
   Plus,
   RotateCcw,
   Settings,
@@ -31,6 +30,13 @@ import {
   WifiOff,
   X,
 } from "lucide-react";
+import { AppearanceSection } from "./AppearanceSection";
+import {
+  DEFAULT_APPEARANCE,
+  applyAppearanceToDOM,
+  loadAppearancePreferences,
+  saveAppearancePreferences,
+} from "./appearance";
 import { parseBackup, serializeBackup } from "./backup";
 import { CoachMark } from "./CoachMark";
 import { CountdownCard } from "./CountdownCard";
@@ -57,6 +63,7 @@ import {
 import { createHousehold, createSampleHousehold } from "./sample";
 import { WhatsNewNotice } from "./WhatsNewNotice";
 import type {
+  AppearancePreferences,
   BoardWidget,
   BoardWidgetType,
   CountdownWidgetConfig,
@@ -1183,6 +1190,9 @@ function SettingsView({
   guideState,
   onDismissTip,
   suppressTips = false,
+  appearance,
+  onAppearanceChange,
+  onAppearanceReset,
 }: {
   snapshot: HouseholdSnapshot;
   onImport: (file: File) => void;
@@ -1193,6 +1203,9 @@ function SettingsView({
   guideState: GuideState;
   onDismissTip: (tipId: string) => void;
   suppressTips?: boolean;
+  appearance: AppearancePreferences;
+  onAppearanceChange: (next: AppearancePreferences) => void;
+  onAppearanceReset?: () => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const exportData = () => {
@@ -1224,6 +1237,11 @@ function SettingsView({
           onDismiss={onDismissTip}
         />
       )}
+      <AppearanceSection
+        preferences={appearance}
+        onChange={onAppearanceChange}
+        onReset={onAppearanceReset}
+      />
       <div className="settings-grid">
         <section className="settings-card">
           <div className="settings-icon">
@@ -1280,16 +1298,6 @@ function SettingsView({
           <span className="local-pill">
             <Leaf /> Local only
           </span>
-        </section>
-        <section className="settings-card">
-          <div className="settings-icon">
-            <Moon />
-          </div>
-          <div>
-            <h2>Display theme</h2>
-            <p>OpenWall follows this device’s light or dark appearance automatically.</p>
-          </div>
-          <span className="local-pill">System setting</span>
         </section>
         <section className="settings-card">
           <div className="settings-icon">
@@ -1384,6 +1392,24 @@ export default function App() {
     }
     return false;
   });
+  const [appearance, setAppearance] = useState<AppearancePreferences>(() => {
+    const initial = loadAppearancePreferences();
+    applyAppearanceToDOM(initial);
+    return initial;
+  });
+
+  useEffect(() => {
+    applyAppearanceToDOM(appearance);
+    saveAppearancePreferences(appearance);
+  }, [appearance]);
+
+  const handleAppearanceChange = (next: AppearancePreferences) => {
+    setAppearance(next);
+  };
+
+  const handleAppearanceReset = () => {
+    setAppearance(DEFAULT_APPEARANCE);
+  };
 
   const handleDismissTip = (tipId: string) => {
     const next = dismissTip(tipId);
@@ -1806,6 +1832,9 @@ export default function App() {
             guideState={guideState}
             onDismissTip={handleDismissTip}
             suppressTips={suppressSubTips}
+            appearance={appearance}
+            onAppearanceChange={handleAppearanceChange}
+            onAppearanceReset={handleAppearanceReset}
           />
         )}
       </main>

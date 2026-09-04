@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Pencil, Timer } from "lucide-react";
 import { getCountdownConfig, useCountdown } from "./countdown";
 import type { BoardWidget } from "./types";
@@ -17,6 +18,17 @@ export function CountdownCard({
 }: CountdownCardProps) {
   const config = getCountdownConfig(widget, householdTimezone);
   const display = useCountdown(config);
+  const [ticking, setTicking] = useState(false);
+  const prevPrimaryTextRef = useRef(display.primaryText);
+
+  useEffect(() => {
+    if (prevPrimaryTextRef.current !== display.primaryText) {
+      prevPrimaryTextRef.current = display.primaryText;
+      setTicking(true);
+      const timer = setTimeout(() => setTicking(false), 240);
+      return () => clearTimeout(timer);
+    }
+  }, [display.primaryText]);
 
   return (
     <div
@@ -63,7 +75,9 @@ export function CountdownCard({
         ) : (
           <div className="countdown-active-view">
             <div className="countdown-metric">
-              <span className={`countdown-digits mode-${config.displayMode}`}>
+              <span
+                className={`countdown-digits mode-${config.displayMode} ${ticking ? "is-ticking" : ""}`}
+              >
                 {display.primaryText}
               </span>
               {display.unitText && <span className="countdown-unit">{display.unitText}</span>}
