@@ -19,7 +19,7 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } },
     },
     { name: "tablet", use: { ...devices["iPad Pro 11"] } },
-    { name: "phone", use: { ...devices["iPhone 15"] } },
+    { name: "phone", use: { ...devices["Pixel 7"] } },
   ],
   webServer: {
     command: "pnpm preview --host 127.0.0.1",

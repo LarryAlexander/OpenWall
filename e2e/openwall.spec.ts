@@ -33,7 +33,7 @@ test("adds a card and enters safe arrange mode", async ({ page }) => {
   await page.getByRole("button", { name: /sticky note/i }).click();
   await expect(page.getByText("Add your note here")).toBeVisible();
 
-  await page.getByRole("button", { name: "Arrange" }).click();
+  await expect(page.getByRole("button", { name: "Done arranging" })).toBeVisible();
   await expect(page.getByRole("button", { name: /move note card/i })).toBeVisible();
   await expect(page.getByText(/drag cards by their top edge/i)).toBeVisible();
 });
