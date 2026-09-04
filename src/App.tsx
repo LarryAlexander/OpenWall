@@ -687,6 +687,7 @@ function TodayBoard({
   const storageKey = `openwall-board-${snapshot.household.id}`;
   const [arranging, setArranging] = useState(false);
   const [draggingWidgetId, setDraggingWidgetId] = useState<string | null>(null);
+  const [activeWidgetId, setActiveWidgetId] = useState<string | null>(null);
   const [trayOpen, setTrayOpen] = useState(false);
   const [cardJustAdded, setCardJustAdded] = useState(false);
   const [editingCountdown, setEditingCountdown] = useState<BoardWidget | null>(null);
@@ -766,7 +767,8 @@ function TodayBoard({
     const draggedElement = event.currentTarget.closest<HTMLElement>("[data-widget-id]");
 
     if (isStackedBoard && resizing) return;
-    if (isStackedBoard) setDraggingWidgetId(widget.id);
+    setActiveWidgetId(widget.id);
+    setDraggingWidgetId(widget.id);
 
     const move = (moveEvent: PointerEvent) => {
       if (isStackedBoard) {
@@ -810,8 +812,8 @@ function TodayBoard({
           return remaining;
         });
         draggedElement?.style.removeProperty("--drag-offset-y");
-        setDraggingWidgetId(null);
       }
+      setDraggingWidgetId(null);
       document.removeEventListener("pointermove", move);
       document.removeEventListener("pointerup", stop);
       document.removeEventListener("pointercancel", cancel);
@@ -994,7 +996,10 @@ function TodayBoard({
             aria-pressed={arranging}
             onClick={() =>
               setArranging((value) => {
-                if (value) setCardJustAdded(false);
+                if (value) {
+                  setCardJustAdded(false);
+                  setActiveWidgetId(null);
+                }
                 return !value;
               })
             }
@@ -1081,7 +1086,10 @@ function TodayBoard({
           <article
             key={widget.id}
             data-widget-id={widget.id}
-            className={`board-widget widget-${widget.type} ${widget.locked ? "is-locked" : ""} ${draggingWidgetId === widget.id ? "is-dragging" : ""} ${widget.stackedHeight ? "has-stacked-height" : ""}`}
+            className={`board-widget widget-${widget.type} ${widget.locked ? "is-locked" : ""} ${draggingWidgetId === widget.id ? "is-dragging" : ""} ${activeWidgetId === widget.id ? "is-active-widget" : ""} ${widget.stackedHeight ? "has-stacked-height" : ""}`}
+            onPointerDownCapture={() => {
+              if (arranging) setActiveWidgetId(widget.id);
+            }}
             style={{
               left: `${widget.x}%`,
               top: `${widget.y}%`,

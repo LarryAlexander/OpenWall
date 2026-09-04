@@ -1643,6 +1643,9 @@ fieldset {
 .is-arranging .board-widget:not(.is-locked):active {
   cursor: grabbing;
 }
+.is-arranging .board-widget.is-active-widget {
+  z-index: 9;
+}
 .widget-content {
   width: 100%;
   height: 100%;
