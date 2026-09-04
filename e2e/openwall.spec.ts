@@ -53,7 +53,7 @@ test("adds a card and enters safe arrange mode", async ({ page }) => {
   await expect(
     addedNote.getByRole("button", { name: "Move note card", exact: true }),
   ).toBeVisible();
-  await expect(page.getByText(/drag cards by their top edge/i)).toBeVisible();
+  await expect(page.locator(".arrange-hint")).toContainText(/drag/i);
 
   await page.reload();
   await expect(page.getByText("Add your note here")).toBeVisible();
@@ -113,7 +113,10 @@ test("reorders cards by dragging in the responsive board", async ({ page }) => {
   const board = page.locator(".open-corkboard");
   const schedule = board.locator('[data-widget-id="schedule"]');
   const tasks = board.locator('[data-widget-id="tasks"]');
-  const scheduleGrip = schedule.getByRole("button", { name: "Move schedule card" });
+  const scheduleGrip = schedule.getByRole("button", {
+    name: "Move schedule card",
+    exact: true,
+  });
   const taskBox = await tasks.boundingBox();
   const gripBox = await scheduleGrip.boundingBox();
   expect(taskBox).not.toBeNull();
