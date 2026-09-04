@@ -416,17 +416,6 @@ html[data-text-scale="large"] {
   }
 }
 
-@keyframes resizeHandleEntry {
-  from {
-    opacity: 0;
-    transform: scale(0.7);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 @keyframes countdownDigitPulse {
   0% {
     opacity: 0.45;
@@ -1678,6 +1667,9 @@ fieldset {
 .stacked-widget-control {
   display: none !important;
 }
+.widget-size-control {
+  display: grid !important;
+}
 .widget-controls button {
   width: 32px;
   border: 0;
@@ -1699,29 +1691,6 @@ fieldset {
 }
 .widget-controls svg {
   width: 15px;
-}
-.resize-handle {
-  position: absolute;
-  z-index: 12;
-  right: 6px;
-  bottom: 6px;
-  width: 44px;
-  height: 44px;
-  border: 0;
-  border-radius: 50%;
-  background: #263d35;
-  cursor: nwse-resize;
-  touch-action: none;
-  box-shadow: 0 4px 12px rgba(25, 31, 28, 0.28);
-  animation: resizeHandleEntry var(--motion-duration-short) var(--motion-easing-emphasized);
-}
-.resize-handle span {
-  display: block;
-  width: 8px;
-  height: 8px;
-  margin: auto;
-  border-right: 2px solid #fff;
-  border-bottom: 2px solid #fff;
 }
 .widget-welcome::before {
   left: 24px;
@@ -2699,9 +2668,6 @@ fieldset {
   }
   .widget-controls button {
     width: 44px;
-  }
-  .resize-handle {
-    display: none;
   }
   .widget-schedule {
     min-height: 480px;

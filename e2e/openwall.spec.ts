@@ -156,7 +156,7 @@ test("offers reliable responsive manipulation controls and persists their change
   await expect(moveDown).toBeEnabled();
 
   await moveDown.click();
-  await schedule.getByRole("button", { name: "Make schedule card shorter", exact: true }).click();
+  await schedule.getByRole("button", { name: "Make schedule card smaller", exact: true }).click();
 
   await expect
     .poll(() =>
@@ -220,13 +220,7 @@ test("moves and resizes cards on a wall-sized board", async ({ page }) => {
   expect(movedBox!.x).toBeGreaterThan(initialBox!.x + 30);
   expect(movedBox!.y).toBeGreaterThan(initialBox!.y + 20);
 
-  const resizeHandle = schedule.getByRole("button", { name: "Resize schedule card", exact: true });
-  const resizeBox = await resizeHandle.boundingBox();
-  expect(resizeBox).not.toBeNull();
-  await page.mouse.move(resizeBox!.x + resizeBox!.width / 2, resizeBox!.y + resizeBox!.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(resizeBox!.x + 80, resizeBox!.y + 60, { steps: 6 });
-  await page.mouse.up();
+  await schedule.getByRole("button", { name: "Make schedule card larger", exact: true }).click();
   const enlargedBox = await schedule.boundingBox();
   expect(enlargedBox!.width).toBeGreaterThan(movedBox!.width + 30);
   expect(enlargedBox!.height).toBeGreaterThan(movedBox!.height + 20);

@@ -746,14 +746,21 @@ function TodayBoard({
     });
   };
 
-  const resizeStackedWidget = (widget: BoardWidget, element: HTMLElement | null, delta: number) => {
-    const currentHeight = widget.stackedHeight ?? element?.offsetHeight ?? 220;
+  const resizeWidgetBy = (widget: BoardWidget, element: HTMLElement | null, delta: number) => {
+    if (window.matchMedia("(max-width: 1279px)").matches) {
+      const currentHeight = widget.stackedHeight ?? element?.offsetHeight ?? 220;
+      updateWidget(widget.id, {
+        stackedHeight: Math.max(150, Math.min(720, currentHeight + delta * 15)),
+      });
+      return;
+    }
     updateWidget(widget.id, {
-      stackedHeight: Math.max(150, Math.min(720, currentHeight + delta)),
+      w: Math.max(12, Math.min(96 - widget.x, widget.w + delta)),
+      h: Math.max(18, Math.min(96 - widget.y, widget.h + delta)),
     });
   };
 
-  const beginMove = (event: React.PointerEvent, widget: BoardWidget, resizing = false) => {
+  const beginMove = (event: React.PointerEvent, widget: BoardWidget) => {
     if (!arranging || widget.locked || !boardRef.current) return;
     event.preventDefault();
     try {
@@ -766,7 +773,6 @@ function TodayBoard({
     const isStackedBoard = window.matchMedia("(max-width: 1279px)").matches;
     const draggedElement = event.currentTarget.closest<HTMLElement>("[data-widget-id]");
 
-    if (isStackedBoard && resizing) return;
     setActiveWidgetId(widget.id);
     setDraggingWidgetId(widget.id);
 
@@ -780,17 +786,10 @@ function TodayBoard({
       }
       const dx = ((moveEvent.clientX - start.pointerX) / board.width) * 100;
       const dy = ((moveEvent.clientY - start.pointerY) / board.height) * 100;
-      if (resizing) {
-        updateWidget(widget.id, {
-          w: Math.max(12, Math.min(96 - widget.x, start.w + dx)),
-          h: Math.max(18, Math.min(96 - widget.y, start.h + dy)),
-        });
-      } else {
-        updateWidget(widget.id, {
-          x: Math.max(0, Math.min(98 - widget.w, start.x + dx)),
-          y: Math.max(0, Math.min(96 - widget.h, start.y + dy)),
-        });
-      }
+      updateWidget(widget.id, {
+        x: Math.max(0, Math.min(98 - widget.w, start.x + dx)),
+        y: Math.max(0, Math.min(96 - widget.h, start.y + dy)),
+      });
     };
     const stop = (stopEvent: PointerEvent) => {
       if (isStackedBoard) {
@@ -1135,30 +1134,30 @@ function TodayBoard({
                   <ArrowDown />
                 </button>
                 <button
-                  className="stacked-widget-control"
+                  className="widget-size-control"
                   disabled={widget.locked}
                   onClick={(event) =>
-                    resizeStackedWidget(
+                    resizeWidgetBy(
                       widget,
                       event.currentTarget.closest<HTMLElement>("[data-widget-id]"),
-                      -60,
+                      -4,
                     )
                   }
-                  aria-label={`Make ${widget.type} card shorter`}
+                  aria-label={`Make ${widget.type} card smaller`}
                 >
                   <Minus />
                 </button>
                 <button
-                  className="stacked-widget-control"
+                  className="widget-size-control"
                   disabled={widget.locked}
                   onClick={(event) =>
-                    resizeStackedWidget(
+                    resizeWidgetBy(
                       widget,
                       event.currentTarget.closest<HTMLElement>("[data-widget-id]"),
-                      60,
+                      4,
                     )
                   }
-                  aria-label={`Make ${widget.type} card taller`}
+                  aria-label={`Make ${widget.type} card larger`}
                 >
                   <Plus />
                 </button>
@@ -1181,15 +1180,6 @@ function TodayBoard({
               </div>
             )}
             <div className="widget-content">{renderWidget(widget)}</div>
-            {arranging && !widget.locked && (
-              <button
-                className="resize-handle"
-                onPointerDown={(event) => beginMove(event, widget, true)}
-                aria-label={`Resize ${widget.type} card`}
-              >
-                <span />
-              </button>
-            )}
           </article>
         ))}
       </div>
