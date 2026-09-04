@@ -30,8 +30,8 @@ const TOUR_STEPS: TourStep[] = [
     icon: <Sun aria-hidden="true" />,
     highlights: [
       {
-        title: "Glance mode",
-        desc: "Read the schedule, check off chores, and view meals without accidentally moving or editing cards.",
+        title: "A living corkboard",
+        desc: "Read the schedule, check off chores, and move cards directly whenever the board needs to change.",
       },
       {
         title: "Today’s timeline",
@@ -90,25 +90,25 @@ const TOUR_STEPS: TourStep[] = [
   },
   {
     id: "arrange",
-    badge: "Arrange mode",
-    title: "Make the layout yours",
-    lead: "Unlock the corkboard whenever you want to reorganize, resize, or lock cards in place.",
+    badge: "Direct arrangement",
+    title: "Move it like a real corkboard",
+    lead: "The board is always ready to reorganize—there is no separate mode to enter or remember to leave.",
     icon: <Grip aria-hidden="true" />,
     highlights: [
       {
-        title: "Unlock the board",
-        desc: "Click “Arrange” in the top toolbar. Drag handles and resize controls will appear on your cards.",
+        title: "Grab any card",
+        desc: "Drag the small grip above a card to move it. On tablets and phones, drag the grip to change its order.",
       },
       {
-        title: "Move & resize freely",
-        desc: "Drag cards by the top grip handle. Pull the bottom-right corner handle to resize cards for readability.",
+        title: "Resize in place",
+        desc: "Select or hover over a card to reveal smaller and larger controls that work with touch, mouse, or keyboard.",
       },
       {
         title: "Lock & protect",
-        desc: "Click the lock icon on a card to freeze its position so nobody moves it. Click “Done arranging” when finished.",
+        desc: "Use the lock icon to freeze important cards. Unlock one whenever you want to move it again.",
       },
     ],
-    tip: "Tip: Returning to glance mode ensures touch interactions like completing tasks won't drag cards around.",
+    tip: "Tip: Dragging starts only from the grip, so buttons and scrollable card content remain safe to use.",
   },
   {
     id: "offline-privacy",

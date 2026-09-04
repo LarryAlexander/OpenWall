@@ -6,16 +6,10 @@ import type { BoardWidget } from "./types";
 interface CountdownCardProps {
   widget: BoardWidget;
   householdTimezone: string;
-  arranging: boolean;
   onEdit: (widget: BoardWidget) => void;
 }
 
-export function CountdownCard({
-  widget,
-  householdTimezone,
-  arranging,
-  onEdit,
-}: CountdownCardProps) {
+export function CountdownCard({ widget, householdTimezone, onEdit }: CountdownCardProps) {
   const config = getCountdownConfig(widget, householdTimezone);
   const display = useCountdown(config);
   const [ticking, setTicking] = useState(false);
@@ -34,11 +28,9 @@ export function CountdownCard({
     <div
       className={`simple-widget countdown-widget ${display.isCompleted ? "is-completed" : ""} ${display.isUrgent ? "is-urgent" : ""}`}
       onClick={() => {
-        if (!arranging) {
-          onEdit(widget);
-        }
+        onEdit(widget);
       }}
-      style={{ cursor: arranging ? "default" : "pointer" }}
+      style={{ cursor: "pointer" }}
     >
       <span className="sr-only">{display.screenReaderText}</span>
       <div className="countdown-header">
@@ -46,20 +38,18 @@ export function CountdownCard({
           <Timer aria-hidden="true" />
           <span>{display.isCompleted ? "COMPLETED" : "COUNTDOWN"}</span>
         </div>
-        {!arranging && (
-          <button
-            type="button"
-            className="countdown-edit-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(widget);
-            }}
-            aria-label={`Edit ${config.title} countdown`}
-            title="Edit countdown"
-          >
-            <Pencil size={14} aria-hidden="true" />
-          </button>
-        )}
+        <button
+          type="button"
+          className="countdown-edit-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(widget);
+          }}
+          aria-label={`Edit ${config.title} countdown`}
+          title="Edit countdown"
+        >
+          <Pencil size={14} aria-hidden="true" />
+        </button>
       </div>
 
       <div className="countdown-body" aria-hidden="true">

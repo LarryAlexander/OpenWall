@@ -43,7 +43,7 @@ test("creates a blank household and adds a task", async ({ page }) => {
   await expect(page.getByText("Test the wall")).toBeVisible();
 });
 
-test("adds a card and enters safe arrange mode", async ({ page }) => {
+test("adds a card ready for direct manipulation", async ({ page }) => {
   await page.getByRole("button", { name: /explore a sample home/i }).click();
   await page.getByRole("button", { name: "Add to board" }).click();
   await page.getByRole("button", { name: /sticky note/i }).click();
@@ -53,7 +53,10 @@ test("adds a card and enters safe arrange mode", async ({ page }) => {
   await expect(
     addedNote.getByRole("button", { name: "Move note card", exact: true }),
   ).toBeVisible();
-  await expect(page.locator(".arrange-hint")).toContainText(/drag/i);
+  await expect(
+    addedNote.getByRole("button", { name: "Make note card larger", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Arrange", exact: true })).toHaveCount(0);
 
   await page.reload();
   await expect(page.getByText("Add your note here")).toBeVisible();
@@ -108,7 +111,6 @@ test("keeps every primary view within iPad portrait and landscape widths", async
 test("reorders cards by dragging in the responsive board", async ({ page }) => {
   await page.setViewportSize({ width: 834, height: 1194 });
   await page.getByRole("button", { name: /explore a sample home/i }).click();
-  await page.getByRole("button", { name: "Arrange", exact: true }).click();
 
   const board = page.locator(".open-corkboard");
   const schedule = board.locator('[data-widget-id="schedule"]');
@@ -143,28 +145,20 @@ test("offers reliable responsive manipulation controls and persists their change
 }) => {
   await page.setViewportSize({ width: 834, height: 1194 });
   await page.getByRole("button", { name: /explore a sample home/i }).click();
-  await page.getByRole("button", { name: "Arrange", exact: true }).click();
 
   const board = page.locator(".open-corkboard");
   const schedule = board.locator('[data-widget-id="schedule"]');
   const initialHeight = await schedule.evaluate((card) => card.getBoundingClientRect().height);
-  const moveDown = schedule.getByRole("button", { name: "Move schedule card down", exact: true });
+  const grip = schedule.getByRole("button", { name: "Move schedule card", exact: true });
 
+  await grip.click();
   await schedule.getByRole("button", { name: "Lock card", exact: true }).click();
-  await expect(moveDown).toBeDisabled();
+  await expect(grip).toBeDisabled();
   await schedule.getByRole("button", { name: "Unlock card", exact: true }).click();
-  await expect(moveDown).toBeEnabled();
+  await expect(grip).toBeEnabled();
 
-  await moveDown.click();
   await schedule.getByRole("button", { name: "Make schedule card smaller", exact: true }).click();
 
-  await expect
-    .poll(() =>
-      board
-        .locator("[data-widget-id]")
-        .evaluateAll((cards) => cards.map((card) => card.getAttribute("data-widget-id"))),
-    )
-    .toEqual(["welcome", "tasks", "schedule", "note", "meal", "countdown", "photo"]);
   await expect
     .poll(() => schedule.evaluate((card) => card.getBoundingClientRect().height))
     .toBeLessThan(initialHeight);
@@ -174,19 +168,9 @@ test("offers reliable responsive manipulation controls and persists their change
   await expect
     .poll(() => savedSchedule.evaluate((card) => card.getBoundingClientRect().height))
     .toBeLessThan(initialHeight);
-  await expect
-    .poll(() =>
-      page
-        .locator(".open-corkboard [data-widget-id]")
-        .evaluateAll((cards) => cards.map((card) => card.getAttribute("data-widget-id"))),
-    )
-    .toEqual(["welcome", "tasks", "schedule", "note", "meal", "countdown", "photo"]);
-
-  await page.getByRole("button", { name: "Arrange", exact: true }).click();
-  await page
-    .locator('[data-widget-id="note"]')
-    .getByRole("button", { name: "Remove note card", exact: true })
-    .click();
+  const note = page.locator('[data-widget-id="note"]');
+  await note.click();
+  await note.getByRole("button", { name: "Remove note card", exact: true }).click();
   await expect(page.locator('[data-widget-id="note"]')).toHaveCount(0);
   await page.reload();
   await expect(page.locator('[data-widget-id="note"]')).toHaveCount(0);
@@ -195,7 +179,6 @@ test("offers reliable responsive manipulation controls and persists their change
 test("moves and resizes cards on a wall-sized board", async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.getByRole("button", { name: /explore a sample home/i }).click();
-  await page.getByRole("button", { name: "Arrange", exact: true }).click();
 
   const schedule = page.locator('[data-widget-id="schedule"]');
   const initialBox = await schedule.boundingBox();

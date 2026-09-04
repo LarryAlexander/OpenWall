@@ -174,7 +174,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
       "Click the '+ Add to board' button located in the top toolbar.",
       "Choose Yellow Sticky for a visual reminder or Tasks for the shared household task list.",
       "Pick Meal or Photo to add the current visual placeholder cards, or Countdown to add an editable live clock.",
-      "New cards appear in Arrange mode so you can position, resize, lock, or remove them.",
+      "New cards appear selected and ready to position, resize, lock, or remove.",
       "Schedule and task content is editable today; editable notes, meals, and local photos are planned next.",
     ],
     action: {
@@ -188,8 +188,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
   {
     id: "arranging-cards",
     title: "Moving, resizing, and locking cards",
-    summary:
-      "Unlock the corkboard to customize your layout freely without risking accidental moves during daily touch use.",
+    summary: "Move and shape the corkboard directly, just like cards pinned to a real family wall.",
     categoryId: "arranging-the-board",
     keywords: [
       "arrange",
@@ -204,31 +203,29 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
       "canvas",
     ],
     steps: [
-      "Click 'Arrange' in the top toolbar to unlock the canvas and reveal card controls.",
-      "On a wall-sized display, drag any card by its top grip handle to move it anywhere on the corkboard.",
-      "On tablets and phones, drag a card by its grip to change its place in the stacked board.",
-      "If dragging is inconvenient, use the arrow buttons to move a stacked card.",
+      "The corkboard is always editable—there is no Arrange button or separate layout mode.",
+      "On a wall-sized display, drag a card by its top grip to move it anywhere on the corkboard.",
+      "On tablets and phones, drag the same grip to change the card's place in the stacked board.",
       "Use the minus and plus buttons to resize a card with touch, mouse, or keyboard.",
       "Click the Lock icon on cards you want fixed in place so other family members don't move them.",
-      "Click 'Done arranging' when finished to lock the board back into touch-safe Glance mode.",
+      "Dragging is limited to the grip so task buttons, countdown editing, and card scrolling keep working normally.",
     ],
     action: {
       type: "tour-step",
-      label: "Watch Arrange mode tour step",
+      label: "Watch board arrangement tour step",
       stepIndex: 3,
     },
   },
   {
-    id: "glance-mode-protection",
-    title: "Why Glance mode protects your layout",
-    summary:
-      "How OpenWall keeps your board reliable by distinguishing read/interact mode from layout arrangement.",
+    id: "direct-manipulation-safety",
+    title: "How direct movement stays safe",
+    summary: "How OpenWall keeps everyday card actions separate from moving the board.",
     categoryId: "arranging-the-board",
     keywords: ["glance", "protect", "touch", "accidental", "safe", "lock", "done arranging"],
     steps: [
-      "Glance mode is the default state whenever you open OpenWall.",
-      "In Glance mode, tapping tasks checks them off and tapping countdowns opens editing without moving the cards.",
-      "Card drag handles and delete buttons are completely hidden until Arrange mode is explicitly toggled on.",
+      "Use the small grip above a card when you intend to move it.",
+      "Tap tasks, schedule entries, and countdown controls normally; those actions do not drag the card.",
+      "Select or hover over a card to reveal its size, lock, and remove controls.",
     ],
     action: {
       type: "navigate",
@@ -527,7 +524,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     highlights: [
       "Living corkboard canvas: Freeform placement for schedule, tasks, notes, meals, and countdown cards.",
       "Real countdown widgets: Active, timezone-aware clocks that adapt precision from days down to digital minutes and seconds in the final hour.",
-      "Glance vs. Arrange modes: Touch-safe everyday viewing with explicit Arrange mode for dragging, resizing, and locking cards.",
+      "Direct corkboard arrangement with grip-based dragging, resizing controls, and per-card locking.",
       "Local-first architecture: Household data and board settings stay in this browser without accounts, servers, or telemetry.",
       "New OpenWall Guide: Built-in 60-second orientation tour, searchable offline help library, and release history.",
       "Versioned household backups: Export members, schedules, and tasks from Settings while board-layout backup remains planned.",
@@ -547,7 +544,7 @@ export const LATEST_RELEASE: ReleaseNote = RELEASE_NOTES[0];
 export const SUGGESTED_SEARCH_TOPICS: string[] = [
   "Appearance",
   "Countdown",
-  "Arrange cards",
+  "Move and arrange cards",
   "Backups",
   "Offline use",
   "Member filters",

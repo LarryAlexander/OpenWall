@@ -394,17 +394,6 @@ html[data-text-scale="large"] {
   }
 }
 
-@keyframes arrangeHintSlide {
-  from {
-    opacity: 0;
-    transform: translateY(calc(-1 * var(--motion-shift-distance)));
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @keyframes widgetControlsEntry {
   from {
     opacity: 0;
@@ -1482,29 +1471,6 @@ fieldset {
   flex-wrap: wrap;
   justify-content: flex-end;
 }
-.arrange-button {
-  min-height: 50px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--ink);
-  border-radius: var(--radius-button);
-  padding: 0 17px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  transition:
-    background var(--motion-duration-short) ease,
-    color var(--motion-duration-short) ease,
-    border-color var(--motion-duration-short) ease,
-    transform var(--motion-duration-short) ease;
-}
-.arrange-button.active {
-  background: #e8bd69;
-  color: #443611;
-  border-color: transparent;
-}
-.arrange-button svg,
 .toolbar-fullscreen svg {
   width: 19px;
 }
@@ -1544,28 +1510,6 @@ fieldset {
   box-shadow:
     inset 0 0 0 2px rgba(32, 57, 48, 0.62),
     0 3px 10px rgba(43, 35, 23, 0.1);
-}
-.arrange-hint {
-  max-width: 1800px;
-  margin: 0 auto 10px;
-  min-height: 38px;
-  background: #fff8e5;
-  color: #5b491c;
-  border: 1px solid #e5cd8f;
-  border-radius: 11px;
-  padding: 8px 13px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  animation: arrangeHintSlide var(--motion-duration-short) var(--motion-easing-emphasized);
-}
-.arrange-hint svg {
-  width: 17px;
-}
-.arrange-hint-stacked {
-  display: none;
 }
 .open-corkboard {
   width: min(100%, 1800px);
@@ -1625,14 +1569,13 @@ fieldset {
 .board-widget:hover {
   z-index: 5;
 }
-.is-arranging .board-widget:not(.is-locked) {
+.is-direct-manipulation .board-widget:not(.is-locked) {
   cursor: grab;
-  box-shadow: 0 0 0 3px rgba(255, 246, 208, 0.78);
 }
-.is-arranging .board-widget:not(.is-locked):active {
+.is-direct-manipulation .board-widget:not(.is-locked):active {
   cursor: grabbing;
 }
-.is-arranging .board-widget.is-active-widget {
+.is-direct-manipulation .board-widget.is-active-widget {
   z-index: 9;
 }
 .widget-content {
@@ -1660,12 +1603,11 @@ fieldset {
   display: flex;
   justify-content: flex-end;
   gap: 2px;
-  background: #263d35;
-  box-shadow: 0 5px 13px rgba(25, 31, 28, 0.25);
-  animation: widgetControlsEntry var(--motion-duration-short) var(--motion-easing-emphasized);
-}
-.stacked-widget-control {
-  display: none !important;
+  background: transparent;
+  box-shadow: none;
+  transition:
+    background var(--motion-duration-short) ease,
+    box-shadow var(--motion-duration-short) ease;
 }
 .widget-size-control {
   display: grid !important;
@@ -1677,11 +1619,32 @@ fieldset {
   color: #fff;
   display: grid;
   place-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-duration-short) ease;
 }
 .widget-controls button:first-child {
   margin-right: auto;
   cursor: grab;
   touch-action: none;
+  opacity: 1;
+  pointer-events: auto;
+  background: #263d35;
+  border-radius: 999px;
+  box-shadow: 0 3px 8px rgba(25, 31, 28, 0.24);
+}
+.board-widget:hover .widget-controls,
+.board-widget:focus-within .widget-controls,
+.board-widget.is-active-widget .widget-controls {
+  background: #263d35;
+  box-shadow: 0 5px 13px rgba(25, 31, 28, 0.25);
+  animation: widgetControlsEntry var(--motion-duration-short) var(--motion-easing-emphasized);
+}
+.board-widget:hover .widget-controls button,
+.board-widget:focus-within .widget-controls button,
+.board-widget.is-active-widget .widget-controls button {
+  opacity: 1;
+  pointer-events: auto;
 }
 .widget-drag-handle,
 .widget-controls {
@@ -2628,12 +2591,6 @@ fieldset {
   .toolbar-fullscreen {
     display: none;
   }
-  .arrange-hint-wide {
-    display: none;
-  }
-  .arrange-hint-stacked {
-    display: inline;
-  }
   .open-corkboard {
     min-width: 0;
     width: 100%;
@@ -2662,9 +2619,6 @@ fieldset {
   .widget-controls {
     top: -26px;
     height: 44px;
-  }
-  .stacked-widget-control {
-    display: grid !important;
   }
   .widget-controls button {
     width: 44px;

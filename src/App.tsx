@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
-  ArrowDown,
-  ArrowUp,
   CalendarDays,
   CheckCircle2,
   ChevronRight,
@@ -685,7 +683,6 @@ function TodayBoard({
   const today = new Date();
   const boardRef = useRef<HTMLDivElement>(null);
   const storageKey = `openwall-board-${snapshot.household.id}`;
-  const [arranging, setArranging] = useState(false);
   const [draggingWidgetId, setDraggingWidgetId] = useState<string | null>(null);
   const [activeWidgetId, setActiveWidgetId] = useState<string | null>(null);
   const [trayOpen, setTrayOpen] = useState(false);
@@ -734,18 +731,6 @@ function TodayBoard({
       current.map((widget) => (widget.id === widgetId ? { ...widget, ...patch } : widget)),
     );
 
-  const moveWidgetBy = (widgetId: string, offset: -1 | 1) => {
-    setWidgets((current) => {
-      const currentIndex = current.findIndex((widget) => widget.id === widgetId);
-      const nextIndex = currentIndex + offset;
-      if (currentIndex < 0 || nextIndex < 0 || nextIndex >= current.length) return current;
-      const reordered = [...current];
-      const [moved] = reordered.splice(currentIndex, 1);
-      reordered.splice(nextIndex, 0, moved);
-      return reordered;
-    });
-  };
-
   const resizeWidgetBy = (widget: BoardWidget, element: HTMLElement | null, delta: number) => {
     if (window.matchMedia("(max-width: 1279px)").matches) {
       const currentHeight = widget.stackedHeight ?? element?.offsetHeight ?? 220;
@@ -765,7 +750,7 @@ function TodayBoard({
   };
 
   const beginMove = (event: React.PointerEvent, widget: BoardWidget) => {
-    if (!arranging || widget.locked || !boardRef.current) return;
+    if (widget.locked || !boardRef.current) return;
     event.preventDefault();
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
@@ -863,7 +848,7 @@ function TodayBoard({
     }
     setWidgets((current) => [...current, added]);
     setTrayOpen(false);
-    setArranging(true);
+    setActiveWidgetId(added.id);
     setCardJustAdded(true);
   };
 
@@ -963,7 +948,6 @@ function TodayBoard({
         <CountdownCard
           widget={widget}
           householdTimezone={snapshot.household.timezone}
-          arranging={arranging}
           onEdit={setEditingCountdown}
         />
       );
@@ -994,22 +978,6 @@ function TodayBoard({
           <h1>Your household, your way.</h1>
         </div>
         <div className="toolbar-actions">
-          <button
-            className={arranging ? "arrange-button active" : "arrange-button"}
-            aria-pressed={arranging}
-            onClick={() =>
-              setArranging((value) => {
-                if (value) {
-                  setCardJustAdded(false);
-                  setActiveWidgetId(null);
-                }
-                return !value;
-              })
-            }
-          >
-            {arranging ? <Unlock /> : <Lock />}
-            {arranging ? "Done arranging" : "Arrange"}
-          </button>
           <button className="primary-button" onClick={() => setTrayOpen(true)}>
             <Plus /> Add to board
           </button>
@@ -1055,35 +1023,29 @@ function TodayBoard({
         <CoachMark
           tipId={TIP_IDS.CARD_ADDED}
           kicker="Card added"
-          message="Your new card has been placed on the corkboard. While in Arrange mode, you can drag it into position, resize it, or lock it before finishing."
+          message="Your new card is ready on the corkboard. Drag its top grip to move it, then use the nearby controls to resize, lock, or remove it."
           onDismiss={(tipId) => {
             setCardJustAdded(false);
             onDismissTip(tipId);
           }}
         />
       ) : !suppressBoardGuidance &&
-        arranging &&
+        activeWidgetId &&
         !isTipDismissed(guideState, TIP_IDS.ARRANGE_MODE) ? (
         <CoachMark
           tipId={TIP_IDS.ARRANGE_MODE}
-          kicker="Arrange mode"
-          message="Drag cards by their top grip to reposition them, resize from the bottom-right handle, or lock cards so family members won't move them."
+          kicker="Move it naturally"
+          message="The board is always editable. Drag a card by its top grip, use minus or plus to resize it, or lock cards you want to keep safely in place."
           onDismiss={onDismissTip}
         />
       ) : null}
-      {arranging && (
-        <div className="arrange-hint">
-          <Grip />
-          <span className="arrange-hint-wide">
-            Drag cards by their top edge. Resize from the lower corner. Lock the board when it feels
-            right.
-          </span>
-          <span className="arrange-hint-stacked">
-            Drag a card by its grip to change its order. Lock cards when the board feels right.
-          </span>
-        </div>
-      )}
-      <div className={`open-corkboard ${arranging ? "is-arranging" : ""}`} ref={boardRef}>
+      <div
+        className="open-corkboard is-direct-manipulation"
+        ref={boardRef}
+        onPointerDown={(event) => {
+          if (event.target === event.currentTarget) setActiveWidgetId(null);
+        }}
+      >
         <div className="cork-grain" />
         {widgets.map((widget) => (
           <article
@@ -1091,7 +1053,7 @@ function TodayBoard({
             data-widget-id={widget.id}
             className={`board-widget widget-${widget.type} ${widget.locked ? "is-locked" : ""} ${draggingWidgetId === widget.id ? "is-dragging" : ""} ${activeWidgetId === widget.id ? "is-active-widget" : ""} ${widget.stackedHeight ? "has-stacked-height" : ""}`}
             onPointerDownCapture={() => {
-              if (arranging) setActiveWidgetId(widget.id);
+              setActiveWidgetId(widget.id);
             }}
             style={{
               left: `${widget.x}%`,
@@ -1104,85 +1066,67 @@ function TodayBoard({
                 : {}),
             }}
           >
-            {arranging && (
-              <div
-                className="widget-controls"
-                onPointerDown={(event) => {
-                  const actionButton = (event.target as HTMLElement).closest("button");
-                  if (actionButton && !actionButton.classList.contains("widget-drag-handle"))
-                    return;
-                  beginMove(event, widget);
-                }}
+            <div
+              className="widget-controls"
+              aria-label={`${widget.type} card controls`}
+              onPointerDown={(event) => {
+                const actionButton = (event.target as HTMLElement).closest("button");
+                if (actionButton && !actionButton.classList.contains("widget-drag-handle")) return;
+                beginMove(event, widget);
+              }}
+            >
+              <button
+                className="widget-drag-handle"
+                disabled={widget.locked}
+                aria-label={`Move ${widget.type} card`}
               >
+                <Grip />
+              </button>
+              <button
+                className="widget-size-control"
+                disabled={widget.locked}
+                onClick={(event) =>
+                  resizeWidgetBy(
+                    widget,
+                    event.currentTarget.closest<HTMLElement>("[data-widget-id]"),
+                    -4,
+                  )
+                }
+                aria-label={`Make ${widget.type} card smaller`}
+              >
+                <Minus />
+              </button>
+              <button
+                className="widget-size-control"
+                disabled={widget.locked}
+                onClick={(event) =>
+                  resizeWidgetBy(
+                    widget,
+                    event.currentTarget.closest<HTMLElement>("[data-widget-id]"),
+                    4,
+                  )
+                }
+                aria-label={`Make ${widget.type} card larger`}
+              >
+                <Plus />
+              </button>
+              <button
+                onClick={() => updateWidget(widget.id, { locked: !widget.locked })}
+                aria-label={widget.locked ? "Unlock card" : "Lock card"}
+              >
+                {widget.locked ? <Lock /> : <Unlock />}
+              </button>
+              {widget.type !== "welcome" && (
                 <button
-                  className="widget-drag-handle"
-                  disabled={widget.locked}
-                  aria-label={`Move ${widget.type} card`}
-                >
-                  <Grip />
-                </button>
-                <button
-                  className="stacked-widget-control"
-                  disabled={widget.locked}
-                  onClick={() => moveWidgetBy(widget.id, -1)}
-                  aria-label={`Move ${widget.type} card up`}
-                >
-                  <ArrowUp />
-                </button>
-                <button
-                  className="stacked-widget-control"
-                  disabled={widget.locked}
-                  onClick={() => moveWidgetBy(widget.id, 1)}
-                  aria-label={`Move ${widget.type} card down`}
-                >
-                  <ArrowDown />
-                </button>
-                <button
-                  className="widget-size-control"
-                  disabled={widget.locked}
-                  onClick={(event) =>
-                    resizeWidgetBy(
-                      widget,
-                      event.currentTarget.closest<HTMLElement>("[data-widget-id]"),
-                      -4,
-                    )
+                  onClick={() =>
+                    setWidgets((current) => current.filter((item) => item.id !== widget.id))
                   }
-                  aria-label={`Make ${widget.type} card smaller`}
+                  aria-label={`Remove ${widget.type} card`}
                 >
-                  <Minus />
+                  <X />
                 </button>
-                <button
-                  className="widget-size-control"
-                  disabled={widget.locked}
-                  onClick={(event) =>
-                    resizeWidgetBy(
-                      widget,
-                      event.currentTarget.closest<HTMLElement>("[data-widget-id]"),
-                      4,
-                    )
-                  }
-                  aria-label={`Make ${widget.type} card larger`}
-                >
-                  <Plus />
-                </button>
-                <button
-                  onClick={() => updateWidget(widget.id, { locked: !widget.locked })}
-                  aria-label={widget.locked ? "Unlock card" : "Lock card"}
-                >
-                  {widget.locked ? <Lock /> : <Unlock />}
-                </button>
-                {widget.type !== "welcome" && (
-                  <button
-                    onClick={() =>
-                      setWidgets((current) => current.filter((item) => item.id !== widget.id))
-                    }
-                    aria-label={`Remove ${widget.type} card`}
-                  >
-                    <X />
-                  </button>
-                )}
-              </div>
-            )}
+              )}
+            </div>
             <div className="widget-content">{renderWidget(widget)}</div>
           </article>
         ))}

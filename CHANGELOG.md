@@ -6,13 +6,15 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 
 ### Added
 
-- Touch-friendly card reordering in Arrange mode on tablet and phone layouts.
-- Responsive Arrange controls for moving cards up or down, plus reliable smaller and larger controls on every layout.
+- Touch-friendly card reordering by direct dragging on tablet and phone layouts.
+- Reliable smaller and larger controls on every layout.
 - Automated overflow coverage for common iPad portrait and landscape sizes.
 - Maintainer guidance for deciding when and how to update this changelog.
 
 ### Changed
 
+- Removed the separate Arrange mode: cards can now be moved directly from their persistent grip, while selecting or hovering reveals size, lock, and remove controls.
+- Tablet and phone cards now reorder by direct dragging instead of manual up/down buttons.
 - Responsive corkboard layouts now fit the available screen width without forcing horizontal clipping.
 - Tablet portrait layouts use the complete bottom navigation and account for device safe areas.
 

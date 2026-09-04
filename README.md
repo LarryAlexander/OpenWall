@@ -17,7 +17,7 @@ OpenWall is not intended to copy Skylight's branding or interface. It addresses 
 - household setup with named, color-coded members
 - a wall-friendly freeform corkboard with movable, resizable, lockable cards
 - schedule, task, note, meal, countdown, welcome, and photo-style cards
-- a protected Arrange mode and an add-card tray
+- direct corkboard manipulation with grab-to-move cards, contextual controls, locking, and an add-card tray
 - an optional 60-second orientation tour with remembered dismissal
 - searchable offline Help and a bundled What’s New history
 - one-time contextual tips for arranging, adding cards, countdowns, offline readiness, and backups
