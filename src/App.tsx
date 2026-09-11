@@ -89,7 +89,6 @@ import type {
   RewardGoal,
   RewardRedemption,
   ActivityEntry,
-  FamilyReaction,
   ScheduleItem,
 } from "./types";
 import { currentStreak, levelForStars, rewardBalance, taskStarValue, requiresRewardApproval, hasAwardForTask } from "./rewards";
