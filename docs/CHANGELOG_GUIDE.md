@@ -2,6 +2,19 @@
 
 The changelog is the plain-language history of changes that matter to households, contributors, deployers, and anyone restoring older OpenWall data. Update `CHANGELOG.md` in the same pull request or commit as every notable change.
 
+For rewards or mobile work, record both the user-visible behavior and the data boundary. Mention migrations whenever a Star value, approval state, redemption, or device-only PIN changes.
+
+```md
+### Added
+- Added a touch-first personal home and a Rewards shop with configurable Stars.
+
+### Changed
+- Task completions now create transparent award or approval activity.
+
+### Security
+- Parent PIN remains local-only and is excluded from backups.
+```
+
 ## When an entry is required
 
 Add an item under **Unreleased** when a change affects any of the following:
@@ -56,3 +69,9 @@ Documentation-only changes may remain in **Unreleased** until the next product r
 6. Run the complete verification suite, merge or push the release, create the matching `vX.Y.Z` tag, and verify the GitHub Pages deployment when included in the release.
 
 Never rewrite an already published release entry to hide a mistake. Add a corrective entry to **Unreleased**, and amend an old entry only to fix an objectively inaccurate statement.
+
+## Automated changelog check
+
+CI and the Pages deployment run `node scripts/check-changelog.mjs`. If app code, public assets, dependencies, deployment configuration, or user-facing documentation changes, the check requires a new bullet under **Unreleased**. Run it locally with `--base <commit> --head <commit>` before pushing.
+
+For a test-only or internal refactor, add the commit trailer `Changelog: none` or use the pull-request label `changelog: none`. This is an explicit exception, not a replacement for documenting behavior changes. The check never writes release notes automatically.

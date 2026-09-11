@@ -23,6 +23,9 @@
 - Implemented onboarding, sample data, a freeform Today corkboard, movable/resizable/lockable cards, an add-card tray, member filters, schedule and task editing, task completion, settings, backup/restore, local reset, responsive reading layouts, dark mode, and PWA packaging.
 - Implemented the optional OpenWall Guide tour, searchable offline help, release history, one-time contextual coach marks, PWA post-update education, and device-local guide preferences.
 - Added a mobile-focused install and connectivity guide with device-aware steps, an available native install prompt, explicit single-browser data boundaries, and persistent offline-readiness status.
+- Added a separate rich fictional eight-person test household, member-aware People view, future Week/Calendar views, task Lists, History, Rewards summary, and local Photos selection.
+- Added schedule kinds for reminders, school closures, holidays, early dismissals, and personal days, plus calendar-date metadata and version-2 backup validation.
+- Added a dependency-free changelog guard to CI and Pages deployment with an explicit internal-change exception marker.
 - Added explicit guidance truth guardrails covering backup boundaries, browser storage, offline prerequisites, device-dependent installation, placeholder cards, and unvalidated product claims.
 - Added Apache-2.0 licensing, contributor and security policies, dependency provenance, continuous integration, and an opt-in Pages deployment workflow.
 - Published the public `LarryAlexander/OpenWall` repository and deployed the static demo through GitHub Pages.

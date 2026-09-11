@@ -119,7 +119,7 @@ const TOUR_STEPS: TourStep[] = [
     highlights: [
       {
         title: "100% local-first",
-        desc: "Members, schedules, and tasks use IndexedDB; board layout, countdowns, and Guide preferences use local browser storage. After the app shell is cached, these features remain available offline.",
+        desc: "Household records use IndexedDB; board layout and countdowns stay local to this browser and can be included in version 2 backups. After the app shell is cached, these features remain available offline.",
       },
       {
         title: "Versioned backups",

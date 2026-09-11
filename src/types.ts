@@ -17,7 +17,17 @@ export interface HouseholdMember {
   colorToken: MemberColorToken;
   symbol: string;
   sortOrder: number;
+  role?: "parent" | "child" | "teen" | "grandparent" | "other";
+  rewardApprovalRequired?: boolean;
 }
+
+export type ScheduleKind =
+  | "event"
+  | "reminder"
+  | "school-closure"
+  | "holiday"
+  | "early-dismissal"
+  | "personal-day";
 
 export interface ScheduleItem {
   id: string;
@@ -30,6 +40,17 @@ export interface ScheduleItem {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  kind?: ScheduleKind;
+  calendarDate?: string;
+  recurrence?: RecurrenceRule;
+  countdownLinkId?: string;
+}
+
+export interface RecurrenceRule {
+  frequency: "daily" | "weekly";
+  interval?: number;
+  weekdays?: number[];
+  until?: string;
 }
 
 export interface HouseholdTask {
@@ -41,16 +62,147 @@ export interface HouseholdTask {
   completedAt?: string;
   createdAt: string;
   updatedAt: string;
+  routineId?: string;
+  occurrenceDate?: string;
+  starValue?: number;
+}
+
+export interface Routine {
+  id: string;
+  householdId: string;
+  title: string;
+  assigneeIds: string[];
+  frequency: "daily" | "weekly" | "school-days";
+  weekdays?: number[];
+  skippedDates?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HistoryEntry {
+  id: string;
+  householdId: string;
+  entityId: string;
+  entityType: "schedule" | "task" | "routine" | "reward" | "photo";
+  action: "completed" | "skipped" | "missed" | "edited" | "deleted" | "restored";
+  occurredAt: string;
+  memberIds: string[];
+  summary: string;
+}
+
+export interface RewardLedgerEntry {
+  id: string;
+  householdId: string;
+  memberId: string;
+  points: number;
+  reason: string;
+  sourceTaskId?: string;
+  sourceType?: "task" | "routine" | "manual" | "redemption" | "challenge";
+  sourceId?: string;
+  status?: "pending" | "approved" | "denied" | "reversed";
+  approvedBy?: string;
+  approvedAt?: string;
+  reversalOfId?: string;
+  createdAt: string;
+}
+
+export interface RewardDefinition {
+  id: string;
+  householdId: string;
+  title: string;
+  description?: string;
+  cost: number;
+  icon: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RewardGoal {
+  id: string;
+  householdId: string;
+  title: string;
+  targetStars: number;
+  deadline?: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RewardChallenge {
+  id: string;
+  householdId: string;
+  title: string;
+  description?: string;
+  bonusStars: number;
+  memberIds: string[];
+  dueAt: string;
+  completedMemberIds?: string[];
+  active: boolean;
+  createdAt: string;
+}
+
+export interface RewardRedemption {
+  id: string;
+  householdId: string;
+  rewardId: string;
+  memberId: string;
+  cost: number;
+  status: "requested" | "approved" | "denied" | "fulfilled";
+  requestedAt: string;
+  decidedAt?: string;
+  decidedBy?: string;
+}
+
+export type FamilyReactionType = "heart" | "clap" | "celebrate" | "laugh" | "star";
+
+export interface FamilyReaction {
+  id: string;
+  householdId: string;
+  activityId: string;
+  memberId: string;
+  type: FamilyReactionType;
+  createdAt: string;
+}
+
+export interface ActivityEntry {
+  id: string;
+  householdId: string;
+  type: "completion" | "award" | "redemption" | "goal" | "challenge" | "reaction";
+  entityId: string;
+  memberIds: string[];
+  summary: string;
+  createdAt: string;
+}
+
+export interface PhotoAsset {
+  id: string;
+  householdId: string;
+  name: string;
+  mimeType: string;
+  dataUrl: string;
+  createdAt: string;
 }
 
 export interface OpenWallBackup {
   format: "openwall-backup";
-  schemaVersion: 1;
+  schemaVersion: 3;
   exportedAt: string;
   household: Household;
   members: HouseholdMember[];
   scheduleItems: ScheduleItem[];
   tasks: HouseholdTask[];
+  routines?: Routine[];
+  history?: HistoryEntry[];
+  rewards?: RewardLedgerEntry[];
+  rewardDefinitions?: RewardDefinition[];
+  rewardGoals?: RewardGoal[];
+  rewardChallenges?: RewardChallenge[];
+  rewardRedemptions?: RewardRedemption[];
+  activities?: ActivityEntry[];
+  reactions?: FamilyReaction[];
+  photos?: PhotoAsset[];
+  boardWidgets?: BoardWidget[];
 }
 
 export interface HouseholdSnapshot {
@@ -58,6 +210,17 @@ export interface HouseholdSnapshot {
   members: HouseholdMember[];
   scheduleItems: ScheduleItem[];
   tasks: HouseholdTask[];
+  routines?: Routine[];
+  history?: HistoryEntry[];
+  rewards?: RewardLedgerEntry[];
+  rewardDefinitions?: RewardDefinition[];
+  rewardGoals?: RewardGoal[];
+  rewardChallenges?: RewardChallenge[];
+  rewardRedemptions?: RewardRedemption[];
+  activities?: ActivityEntry[];
+  reactions?: FamilyReaction[];
+  photos?: PhotoAsset[];
+  boardWidgets?: BoardWidget[];
 }
 
 export type CountdownDisplayMode = "auto" | "days" | "digital";
@@ -85,6 +248,13 @@ export interface BoardWidget {
   locked?: boolean;
   stackedHeight?: number;
   countdown?: CountdownWidgetConfig;
+}
+
+export interface BoardLayout {
+  id: string;
+  householdId: string;
+  widgets: BoardWidget[];
+  updatedAt: string;
 }
 
 export type EditorTarget =

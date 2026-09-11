@@ -15,6 +15,7 @@ OpenWall is not intended to copy Skylight's branding or interface. It addresses 
 ## Current MVP
 
 - household setup with named, color-coded members
+- a fictional eight-person test household for responsive and member-filter testing
 - a wall-friendly freeform corkboard with movable, resizable, lockable cards
 - schedule, task, note, meal, countdown, welcome, and photo-style cards
 - direct corkboard manipulation with grab-to-move cards, contextual controls, locking, and an add-card tray
@@ -23,6 +24,7 @@ OpenWall is not intended to copy Skylight's branding or interface. It addresses 
 - one-time contextual tips for arranging, adding cards, countdowns, offline readiness, and backups
 - locally created schedule items
 - assignable, completable household tasks
+- working Week, Calendar, Lists, History, People, Rewards, and Photos destinations
 - automatic local persistence
 - device-aware installation guidance for iPhone, iPad, Android, computers, and wall displays
 - a plain-language explanation of what GitHub Pages, local browser storage, and offline mode each do

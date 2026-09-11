@@ -2,13 +2,18 @@ import { afterEach, describe, expect, it } from "vitest";
 import { DexieOpenWallRepository } from "./db";
 import { createSampleHousehold } from "./sample";
 import Dexie, { type EntityTable } from "dexie";
-import type { Household, HouseholdMember, HouseholdTask, ScheduleItem } from "./types";
+import type { Household, HouseholdMember, HouseholdTask, ScheduleItem, HistoryEntry, RewardLedgerEntry, Routine, PhotoAsset, BoardLayout } from "./types";
 
 class TestDatabase extends Dexie {
   households!: EntityTable<Household, "id">;
   members!: EntityTable<HouseholdMember, "id">;
   scheduleItems!: EntityTable<ScheduleItem, "id">;
   tasks!: EntityTable<HouseholdTask, "id">;
+  routines!: EntityTable<Routine, "id">;
+  history!: EntityTable<HistoryEntry, "id">;
+  rewards!: EntityTable<RewardLedgerEntry, "id">;
+  photos!: EntityTable<PhotoAsset, "id">;
+  boardLayouts!: EntityTable<BoardLayout, "id">;
   constructor() {
     super(`openwall-test-${crypto.randomUUID()}`);
     this.version(1).stores({
@@ -16,6 +21,11 @@ class TestDatabase extends Dexie {
       members: "id, householdId, sortOrder",
       scheduleItems: "id, householdId, startsAt, *memberIds",
       tasks: "id, householdId, dueDate, completedAt, *assigneeIds",
+      routines: "id, householdId, frequency",
+      history: "id, householdId, occurredAt, entityType",
+      rewards: "id, householdId, memberId, createdAt",
+      photos: "id, householdId, createdAt",
+      boardLayouts: "id, householdId, updatedAt",
     });
   }
 }
@@ -52,5 +62,47 @@ describe("DexieOpenWallRepository", () => {
       updated.completedAt,
     );
     expect(loaded?.scheduleItems).toHaveLength(sample.scheduleItems.length);
+  });
+
+  it("persists routines and history alongside the household", async () => {
+    const database = new TestDatabase();
+    databases.push(database);
+    const repository = new DexieOpenWallRepository(database as never);
+    const sample = createSampleHousehold();
+    const routine: Routine = {
+      id: crypto.randomUUID(),
+      householdId: sample.household.id,
+      title: "Morning reset",
+      assigneeIds: [sample.members[0].id],
+      frequency: "daily",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await repository.replace({ ...sample, routines: [routine] });
+    const entry: HistoryEntry = {
+      id: crypto.randomUUID(), householdId: sample.household.id, entityId: sample.tasks[0].id,
+      entityType: "task", action: "completed", occurredAt: new Date().toISOString(),
+      memberIds: sample.tasks[0].assigneeIds, summary: "Completed task",
+    };
+    await repository.saveHistory(entry);
+    const loaded = await repository.load();
+    expect(loaded?.routines).toEqual([routine]);
+    expect(loaded?.history).toEqual([entry]);
+  });
+
+  it("persists board layout and local photo records", async () => {
+    const database = new TestDatabase();
+    databases.push(database);
+    const repository = new DexieOpenWallRepository(database as never);
+    const sample = createSampleHousehold();
+    const widgets = [{ id: "note", type: "note" as const, x: 1, y: 2, w: 20, h: 20, tilt: 0 }];
+    await repository.replace({ ...sample, boardWidgets: widgets });
+    const photo: PhotoAsset = { id: crypto.randomUUID(), householdId: sample.household.id, name: "family.png", mimeType: "image/png", dataUrl: "data:image/png;base64,AA==", createdAt: new Date().toISOString() };
+    await repository.savePhoto(photo);
+    const loaded = await repository.load();
+    expect(loaded?.boardWidgets).toEqual(widgets);
+    expect(loaded?.photos).toEqual([photo]);
+    await repository.deletePhoto(photo.id);
+    expect((await repository.load())?.photos).toEqual([]);
   });
 });

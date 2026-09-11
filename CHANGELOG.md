@@ -6,6 +6,30 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 
 ### Added
 
+- Touch-first mobile personal home with member switching, quick task/schedule actions, and a dedicated path back to the full corkboard.
+- Family Rewards upgrade with configurable Star values, member balances, streaks, levels, reward shop, shared goals, weekly progress, activity feed, reactions, child approval states, and parent corrections.
+- Device-only parent PIN unlock for protected reward actions, with 15-minute sessions and no backup/export of the PIN.
+- Version 3 local persistence and backups for reward definitions, goals, redemptions, activities, reactions, and migration-safe task values.
+- Child-profile approval preferences, task-level Star values, reward redemption requests, and shared goal progress are persisted locally.
+
+### Added
+
+- An eight-person fictional testing household available from onboarding and Settings for responsive and member-filter testing.
+- Working Week, Calendar, Lists, History, People, Rewards, and Photos destinations replacing the previous disabled placeholders.
+- Richer schedule metadata and local dashboard views for future household planning.
+- A dependency-free changelog guard that blocks user-visible deployments without an Unreleased entry.
+- Version 2 backup metadata for board widgets, schedule kinds, member roles, routines, history, rewards, and local photos.
+- Schedule-linked countdown cards that stay synchronized with future events.
+- Repository-backed local photo metadata and parent-correctable reward adjustments.
+- Person filtering in History for quick, household-friendly review.
+- Weekly routines now require and retain an explicit weekday.
+- Added a dependency-free service-worker fallback so cached app-shell behavior remains available on static hosting.
+
+### Changed
+
+- Expanded household navigation so future plans and personal views are discoverable beyond Today.
+- Added a documented `Changelog: none` exception for internal-only changes.
+
 - A physical tear-off animation when removing a card, with reduced-motion support.
 - Extra visible tacks on locked cards so their protected state reads naturally on the corkboard.
 - Touch-friendly card reordering by direct dragging on tablet and phone layouts.

@@ -30,6 +30,20 @@ test("opens the fictional household and completes a task", async ({ page }) => {
   await expect(page.getByRole("button", { name: /mark incomplete feed pepper/i })).toBeVisible();
 });
 
+test("opens the eight-person testing household and exposes the expanded navigation", async ({ page }) => {
+  await page.getByRole("button", { name: /8-person test household/i }).click();
+  await expect(page.getByText("The River House · Test Bench")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Today" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Calendar" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "People" })).toBeVisible();
+  await page.getByRole("button", { name: "Calendar" }).click();
+  await expect(page.getByRole("heading", { name: "Calendar" })).toBeVisible();
+  await expect(page.getByText("Sun", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "People" }).click();
+  await expect(page.getByRole("heading", { name: "People" })).toBeVisible();
+  await expect(page.getByLabel("Name for Zuri")).toBeVisible();
+});
+
 test("creates a blank household and adds a task", async ({ page }) => {
   await page.getByRole("button", { name: /set up my household/i }).click();
   await page.getByLabel("Household name").fill("The Test Home");
@@ -64,7 +78,13 @@ test("adds a card ready for direct manipulation", async ({ page }) => {
 
 test("keeps mobile navigation reachable and remembers offline readiness", async ({ page }) => {
   await page.getByRole("button", { name: /explore a sample home/i }).click();
-  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.evaluate(async () => {
+    if (!("serviceWorker" in navigator)) return;
+    await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise((resolve) => setTimeout(resolve, 2000)),
+    ]);
+  });
   await page.getByRole("button", { name: "Settings" }).click();
 
   await expect(page.getByRole("heading", { name: "Install & connectivity" })).toBeVisible();
@@ -250,7 +270,13 @@ test("reopens the saved household while offline", async ({ page, browserName }) 
   test.skip(browserName === "webkit", "Playwright WebKit cannot reliably reload an offline page.");
   await page.getByRole("button", { name: /explore a sample home/i }).click();
   await expect(page.getByRole("heading", { name: /today’s rhythm/i })).toBeVisible();
-  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.evaluate(async () => {
+    if (!("serviceWorker" in navigator)) return;
+    await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise((resolve) => setTimeout(resolve, 2000)),
+    ]);
+  });
   await page.reload();
   await expect(page.getByRole("heading", { name: /today’s rhythm/i })).toBeVisible();
   await page.context().setOffline(true);

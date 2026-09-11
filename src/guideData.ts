@@ -173,9 +173,9 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
     steps: [
       "Click the '+ Add to board' button located in the top toolbar.",
       "Choose Yellow Sticky for a visual reminder or Tasks for the shared household task list.",
-      "Pick Meal or Photo to add the current visual placeholder cards, or Countdown to add an editable live clock.",
+      "Pick Meal for a simple dinner card, Photo to choose a device-local image, or Countdown to add an editable live clock.",
       "New cards appear selected and ready to position, resize, lock, or remove.",
-      "Schedule and task content is editable today; editable notes, meals, and local photos are planned next.",
+      "Schedule and task content is editable today; local photos can be selected from Photos. Notes and meals remain simple board cards for now.",
     ],
     action: {
       type: "tour-step",
@@ -298,7 +298,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
     steps: [
       "While online, GitHub Pages delivers OpenWall’s static app files and the browser checks for published updates. OpenWall has no application account or household-data server.",
       "After loading OpenWall once online, the application shell is cached on this device when the browser supports the required service-worker features.",
-      "Household members, schedule items, and tasks are saved in IndexedDB; board layout and countdown settings currently use separate local browser storage.",
+      "Household records are saved in IndexedDB; board layout and countdown settings are kept locally in this browser and included in version 2 backups when available.",
       "If your home internet drops after the app has been cached, a gentle banner confirms that saved local features remain available.",
       "You can continue adding, editing, and checking off tasks normally while offline.",
       "Each browser keeps a separate household. Changes made on one phone do not automatically sync to another device in this version.",
@@ -349,7 +349,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
     id: "local-privacy-backup",
     title: "Exporting and safeguarding your data",
     summary:
-      "Export the household records supported by the current backup format so they can be recovered after browser-data loss.",
+      "Export household records and the current board layout so they can be recovered after browser-data loss.",
     categoryId: "backup-restore-and-privacy",
     keywords: [
       "backup",
@@ -366,7 +366,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
       "Under 'Back up your household', click 'Export backup'.",
       "A versioned JSON file (for example, openwall-YYYY-MM-DD.json) will be saved to your device.",
       "Store this file in your personal documents folder or cloud backup for long-term safety.",
-      "The current backup protects household members, schedules, and tasks. It does not yet include the freeform board layout or countdown cards.",
+      "Version 2 backups protect household members, schedules, tasks, routines, activity history, rewards, photos, and the freeform board layout when it is available.",
     ],
     action: {
       type: "navigate",

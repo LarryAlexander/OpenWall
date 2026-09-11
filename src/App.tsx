@@ -61,7 +61,7 @@ import {
   TIP_IDS,
   type StartTourEventDetail,
 } from "./guideState";
-import { createHousehold, createSampleHousehold } from "./sample";
+import { createEightPersonTestHousehold, createHousehold, createSampleHousehold } from "./sample";
 import { InstallEducation } from "./InstallEducation";
 import {
   isRunningStandalone,
@@ -80,10 +80,31 @@ import type {
   HouseholdMember,
   HouseholdSnapshot,
   HouseholdTask,
+  HistoryEntry,
+  PhotoAsset,
+  Routine,
+  RewardLedgerEntry,
+  RewardDefinition,
+  RewardGoal,
+  RewardRedemption,
+  ActivityEntry,
+  FamilyReaction,
   ScheduleItem,
 } from "./types";
+import { currentStreak, levelForStars, rewardBalance, taskStarValue, requiresRewardApproval, hasAwardForTask } from "./rewards";
+import { hasParentPin, isParentUnlocked, setParentPin, unlockParentMode } from "./pin";
 
-type View = "today" | "settings" | "guide";
+type View =
+  | "today"
+  | "week"
+  | "calendar"
+  | "lists"
+  | "history"
+  | "people"
+  | "rewards"
+  | "photos"
+  | "settings"
+  | "guide";
 type Notice = { tone: "success" | "warning" | "error"; message: string } | null;
 
 const todayInput = () => format(new Date(), "yyyy-MM-dd");
@@ -108,11 +129,13 @@ function Avatar({ member, small = false }: { member: HouseholdMember; small?: bo
 
 function Welcome({
   onSample,
+  onTestSample,
   onSetup,
   online,
   offlineReady,
 }: {
   onSample: () => void;
+  onTestSample: () => void;
   onSetup: () => void;
   online: boolean;
   offlineReady: boolean;
@@ -133,6 +156,9 @@ function Welcome({
           <div className="welcome-actions">
             <button className="primary-button" onClick={onSample}>
               Explore a sample home <ChevronRight aria-hidden="true" />
+            </button>
+            <button className="secondary-button" onClick={onTestSample}>
+              Explore the 8-person test household
             </button>
             <button className="secondary-button" onClick={onSetup}>
               Set up my household
@@ -299,15 +325,33 @@ function Sidebar({
           <Sun />
           <span>Today</span>
         </button>
-        <button disabled>
+        <button className={view === "week" ? "active" : ""} onClick={() => onView("week")}>
           <CalendarDays />
           <span>Week</span>
-          <span className="soon">Soon</span>
         </button>
-        <button disabled>
+        <button className={view === "lists" ? "active" : ""} onClick={() => onView("lists")}>
           <ListChecks />
           <span>Lists</span>
-          <span className="soon">Soon</span>
+        </button>
+        <button className={view === "calendar" ? "active" : ""} onClick={() => onView("calendar")}>
+          <CalendarDays />
+          <span>Calendar</span>
+        </button>
+        <button className={view === "history" ? "active" : ""} onClick={() => onView("history")}>
+          <RotateCcw />
+          <span>History</span>
+        </button>
+        <button className={view === "people" ? "active" : ""} onClick={() => onView("people")}>
+          <Users />
+          <span>People</span>
+        </button>
+        <button className={view === "rewards" ? "active" : ""} onClick={() => onView("rewards")}>
+          <CheckCircle2 />
+          <span>Rewards</span>
+        </button>
+        <button className={view === "photos" ? "active" : ""} onClick={() => onView("photos")}>
+          <Image />
+          <span>Photos</span>
         </button>
       </nav>
       <div className="sidebar-bottom">
@@ -354,6 +398,9 @@ function EventEditor({
   const [date, setDate] = useState(format(start, "yyyy-MM-dd"));
   const [startTime, setStartTime] = useState(timeInput(start));
   const [endTime, setEndTime] = useState(timeInput(end));
+  const [allDay, setAllDay] = useState(current?.allDay ?? false);
+  const [kind, setKind] = useState<NonNullable<ScheduleItem["kind"]>>(current?.kind ?? "event");
+  const [linkCountdown, setLinkCountdown] = useState(Boolean(current?.countdownLinkId));
   const [memberIds, setMemberIds] = useState(current?.memberIds ?? []);
   const [notes, setNotes] = useState(current?.notes ?? "");
   const [error, setError] = useState("");
@@ -361,19 +408,23 @@ function EventEditor({
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!title.trim()) return setError("Add a title for this schedule item.");
-    if (!date || !startTime || !endTime) return setError("Choose a date, start, and end time.");
-    const startsAt = new Date(`${date}T${startTime}:00`);
-    const endsAt = new Date(`${date}T${endTime}:00`);
-    if (endsAt <= startsAt) return setError("End time must be after the start time.");
+    if (!date || (!allDay && (!startTime || !endTime))) return setError("Choose a date and time.");
+    const startsAt = new Date(`${date}T${allDay ? "00:00" : startTime}:00`);
+    const endsAt = allDay ? new Date(startsAt.getTime() + 86_400_000) : new Date(`${date}T${endTime}:00`);
+    if (!allDay && endsAt <= startsAt) return setError("End time must be after the start time.");
     const now = new Date().toISOString();
+    const itemId = current?.id ?? id();
     onSave({
-      id: current?.id ?? id(),
+      id: itemId,
       householdId,
       title: title.trim(),
       memberIds,
       startsAt: startsAt.toISOString(),
       endsAt: endsAt.toISOString(),
-      allDay: false,
+      allDay,
+      kind,
+      countdownLinkId: linkCountdown ? itemId : undefined,
+      calendarDate: date,
       notes: notes.trim() || undefined,
       createdAt: current?.createdAt ?? now,
       updatedAt: now,
@@ -412,6 +463,27 @@ function EventEditor({
               value={endTime}
               onChange={(event) => setEndTime(event.target.value)}
             />
+          </label>
+        </div>
+        <div className="form-row">
+          <label>
+            Type
+            <select value={kind} onChange={(event) => setKind(event.target.value as NonNullable<ScheduleItem["kind"]>)}>
+              <option value="event">Event</option>
+              <option value="reminder">Reminder</option>
+              <option value="school-closure">School closed</option>
+              <option value="holiday">Holiday</option>
+              <option value="early-dismissal">Early dismissal</option>
+              <option value="personal-day">Personal day</option>
+            </select>
+          </label>
+          <label className="choice inline-choice">
+            <input type="checkbox" checked={allDay} onChange={(event) => setAllDay(event.target.checked)} />
+            All day
+          </label>
+          <label className="choice inline-choice">
+            <input type="checkbox" checked={linkCountdown} onChange={(event) => setLinkCountdown(event.target.checked)} />
+            Show countdown
           </label>
         </div>
         <fieldset>
@@ -486,6 +558,7 @@ function TaskEditor({
   const current = target.value;
   const [title, setTitle] = useState(current?.title ?? "");
   const [dueDate, setDueDate] = useState(current?.dueDate ?? todayInput());
+  const [starValue, setStarValue] = useState(String(current?.starValue ?? 5));
   const [assigneeIds, setAssigneeIds] = useState(current?.assigneeIds ?? []);
   const [error, setError] = useState("");
   const submit = (event: FormEvent) => {
@@ -498,6 +571,7 @@ function TaskEditor({
       title: title.trim(),
       assigneeIds,
       dueDate: dueDate || undefined,
+      starValue: Math.max(0, Number(starValue) || 0),
       completedAt: current?.completedAt,
       createdAt: current?.createdAt ?? now,
       updatedAt: now,
@@ -518,6 +592,10 @@ function TaskEditor({
         <label>
           Due date
           <input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
+        </label>
+        <label>
+          Stars for completion
+          <input type="number" min="0" max="999" inputMode="numeric" value={starValue} onChange={(event) => setStarValue(event.target.value)} />
         </label>
         <fieldset>
           <legend>Who can do it?</legend>
@@ -651,6 +729,63 @@ const defaultBoardWidgets: BoardWidget[] = [
   { id: "photo", type: "photo", x: 84, y: 73, w: 14, h: 22, tilt: -1.1 },
 ];
 
+function MobilePersonalHome({
+  snapshot,
+  memberId,
+  onSelectMember,
+  onComplete,
+  onEdit,
+}: {
+  snapshot: HouseholdSnapshot;
+  memberId: string | null;
+  onSelectMember: (id: string | null) => void;
+  onComplete: (task: HouseholdTask) => void;
+  onEdit: (target: EditorTarget) => void;
+}) {
+  const member = snapshot.members.find((candidate) => candidate.id === memberId) ?? snapshot.members[0];
+  const selectedId = member?.id;
+  const events = snapshot.scheduleItems
+    .filter((item) => item.memberIds.includes(selectedId ?? ""))
+    .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
+    .slice(0, 4);
+  const tasks = snapshot.tasks
+    .filter((task) => task.assigneeIds.includes(selectedId ?? ""))
+    .sort((a, b) => Number(Boolean(a.completedAt)) - Number(Boolean(b.completedAt)))
+    .slice(0, 5);
+  const stars = member ? rewardBalance(member.id, snapshot.tasks, snapshot.rewards ?? []) : 0;
+  return (
+    <section className="mobile-personal-home" aria-labelledby="mobile-home-title">
+      <div className="mobile-personal-header">
+        <div>
+          <p className="eyebrow">Your day</p>
+          <h2 id="mobile-home-title">{member ? `${member.name}'s plan` : "Household plan"}</h2>
+        </div>
+        {member && <div className={`mobile-stars color-${member.colorToken}`} aria-label={`${stars} Stars`}>⭐ {stars}</div>}
+      </div>
+      <div className="mobile-member-switcher" aria-label="Choose a personal view">
+        {snapshot.members.map((candidate) => (
+          <button key={candidate.id} className={candidate.id === selectedId ? "selected" : ""} onClick={() => onSelectMember(candidate.id)}>
+            <Avatar member={candidate} small /> <span>{candidate.name}</span>
+          </button>
+        ))}
+      </div>
+      <div className="mobile-personal-grid">
+        <section className="mobile-personal-card">
+          <div className="mobile-card-heading"><h3>Tasks</h3><span>{tasks.filter((task) => task.completedAt).length}/{tasks.length}</span></div>
+          {tasks.length ? tasks.map((task) => <button key={task.id} className={`mobile-task-row ${task.completedAt ? "completed" : ""}`} onClick={() => onComplete(task)}><span>{task.completedAt ? "✓" : "○"}</span><span>{task.title}</span><small>+{taskStarValue(task)} ⭐</small></button>) : <p className="mobile-empty">No tasks assigned yet.</p>}
+          <button className="text-button" onClick={() => onEdit({ kind: "task" })}>Add a task <Plus /></button>
+        </section>
+        <section className="mobile-personal-card">
+          <div className="mobile-card-heading"><h3>Coming up</h3><span>{events.length}</span></div>
+          {events.length ? events.map((item) => <button key={item.id} className="mobile-event-row" onClick={() => onEdit({ kind: "event", value: item })}><span>{item.allDay ? "All day" : format(parseISO(item.startsAt), "h:mm a")}</span><strong>{item.title}</strong></button>) : <p className="mobile-empty">Nothing scheduled yet.</p>}
+          <button className="text-button" onClick={() => onEdit({ kind: "event" })}>Add to schedule <Plus /></button>
+        </section>
+      </div>
+      <p className="mobile-personal-hint">Your private Stars, tasks, and schedule stay on this device. Open the Board tab for the full corkboard.</p>
+    </section>
+  );
+}
+
 function TodayBoard({
   snapshot,
   filterId,
@@ -692,7 +827,7 @@ function TodayBoard({
   const [widgets, setWidgets] = useState<BoardWidget[]>(() => {
     try {
       const stored = localStorage.getItem(storageKey);
-      if (!stored) return defaultBoardWidgets;
+      if (!stored) return snapshot.boardWidgets?.length ? snapshot.boardWidgets : defaultBoardWidgets;
       const parsed = JSON.parse(stored) as BoardWidget[];
       return parsed.map((w) => {
         if (w.type === "countdown") {
@@ -708,7 +843,8 @@ function TodayBoard({
 
   const events = snapshot.scheduleItems.filter(
     (item) =>
-      isSameDay(parseISO(item.startsAt), today) && (!filterId || item.memberIds.includes(filterId)),
+      (item.calendarDate ?? format(parseISO(item.startsAt), "yyyy-MM-dd")) === todayInput() &&
+      (!filterId || item.memberIds.includes(filterId)),
   );
   const tasks = snapshot.tasks
     .filter(
@@ -725,7 +861,51 @@ function TodayBoard({
     } catch {
       // Keep the active board usable when browser storage is blocked or full.
     }
-  }, [storageKey, widgets]);
+    void repository.saveBoardLayout({
+      id: snapshot.household.id,
+      householdId: snapshot.household.id,
+      widgets,
+      updatedAt: new Date().toISOString(),
+    }).catch(() => {
+      // The localStorage fallback keeps the board usable if IndexedDB is unavailable.
+    });
+  }, [storageKey, widgets, snapshot.household.id]);
+
+  // Schedule-linked countdowns are materialized on the board automatically.
+  // The schedule remains the source of truth, so editing the event updates the card.
+  useEffect(() => {
+    const linked = snapshot.scheduleItems.filter((item) => item.countdownLinkId);
+    if (!linked.length) return;
+    setWidgets((current) => {
+      let changed = false;
+      const next = [...current];
+      for (const item of linked) {
+        const widgetId = `countdown-linked-${item.id}`;
+        const target = item.allDay || item.calendarDate
+          ? new Date(`${item.calendarDate ?? format(parseISO(item.startsAt), "yyyy-MM-dd")}T00:00:00`).toISOString()
+          : item.startsAt;
+        const config: CountdownWidgetConfig = {
+          title: item.title,
+          targetAt: target,
+          displayMode: "auto",
+          completionMessage: "It’s here!",
+          timezone: snapshot.household.timezone,
+        };
+        const index = next.findIndex((widget) => widget.id === widgetId);
+        if (index >= 0) {
+          const widget = next[index];
+          if (JSON.stringify(widget.countdown) !== JSON.stringify(config)) {
+            next[index] = { ...widget, countdown: config };
+            changed = true;
+          }
+        } else {
+          next.push({ id: widgetId, type: "countdown", x: 68, y: 72, w: 16, h: 22, tilt: 0.5, countdown: config });
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+  }, [snapshot.scheduleItems, snapshot.household.timezone]);
 
   const updateWidget = (widgetId: string, patch: Partial<BoardWidget>) =>
     setWidgets((current) =>
@@ -864,7 +1044,11 @@ function TodayBoard({
       };
       added = updateBoardWidgetWithCountdown(added, cfg);
     }
-    setWidgets((current) => [...current, added]);
+    setWidgets((current) => {
+      const next = [...current, added];
+      try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* repository persistence remains available */ }
+      return next;
+    });
     setTrayOpen(false);
     setActiveWidgetId(added.id);
     setCardJustAdded(true);
@@ -969,14 +1153,16 @@ function TodayBoard({
           onEdit={setEditingCountdown}
         />
       );
+    let storedPhoto: string | null = null;
+    try {
+      storedPhoto = localStorage.getItem(`openwall-photo-${snapshot.household.id}`);
+    } catch {
+      storedPhoto = null;
+    }
     return (
       <div className="photo-widget">
-        <div className="photo-sky">
-          <Sun />
-          <span />
-          <span />
-        </div>
-        <p>Our favorite place</p>
+        {storedPhoto ? <img src={storedPhoto} alt="Selected household photo" /> : <div className="photo-sky"><Sun /><span /><span /></div>}
+        <p>{storedPhoto ? "A favorite moment" : "Add a favorite photo from Photos"}</p>
       </div>
     );
   };
@@ -1023,6 +1209,13 @@ function TodayBoard({
           </button>
         ))}
       </div>
+      <MobilePersonalHome
+        snapshot={snapshot}
+        memberId={filterId}
+        onSelectMember={onFilter}
+        onComplete={onComplete}
+        onEdit={onEdit}
+      />
       {guideState.tourStatus === "unseen" ? (
         <GuideCard onStartTour={onStartTour} onDismiss={onDismissGuideCard} />
       ) : (
@@ -1299,10 +1492,214 @@ function EmptyState({
   );
 }
 
+function DashboardView({
+  view,
+  snapshot,
+  filterId,
+  onFilter,
+  onView,
+  onEdit,
+  onComplete,
+  onSaveRoutine,
+  onSaveMember,
+  onDeleteMember,
+  onUpdateRoutine,
+  onSaveReward,
+  onSaveRewardDefinition,
+  onSaveRewardGoal,
+  onSaveRedemption,
+  onSaveActivity,
+  parentUnlocked,
+  onRequestParentUnlock,
+  onSavePhoto,
+  onDeletePhoto,
+}: {
+  view: Exclude<View, "today" | "settings" | "guide">;
+  snapshot: HouseholdSnapshot;
+  filterId: string | null;
+  onFilter: (id: string | null) => void;
+  onView: (view: View) => void;
+  onEdit: (target: EditorTarget) => void;
+  onComplete: (task: HouseholdTask) => void;
+  onSaveRoutine: (routine: Routine) => void;
+  onSaveMember: (member: HouseholdMember) => void;
+  onDeleteMember: (member: HouseholdMember) => void;
+  onUpdateRoutine: (routine: Routine) => void;
+  onSaveReward: (entry: RewardLedgerEntry) => void;
+  onSaveRewardDefinition: (definition: RewardDefinition) => void;
+  onSaveRewardGoal: (goal: RewardGoal) => void;
+  onSaveRedemption: (redemption: RewardRedemption) => void;
+  onSaveActivity: (entry: ActivityEntry) => void;
+  parentUnlocked: boolean;
+  onRequestParentUnlock: () => void;
+  onSavePhoto: (photo: PhotoAsset) => void;
+  onDeletePhoto: (photo: PhotoAsset) => void;
+}) {
+  const [photoData, setPhotoData] = useState<string | null>(() => {
+    const saved = snapshot.photos?.[0]?.dataUrl;
+    if (saved) return saved;
+    try {
+      return localStorage.getItem(`openwall-photo-${snapshot.household.id}`);
+    } catch {
+      return null;
+    }
+  });
+  const visibleEvents = snapshot.scheduleItems
+    .filter((item) => !filterId || item.memberIds.includes(filterId))
+    .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+  const visibleTasks = snapshot.tasks.filter(
+    (task) => !filterId || task.assigneeIds.includes(filterId),
+  );
+  const today = new Date();
+  const weekEnd = new Date(today.getTime() + 7 * 86_400_000);
+  const events = view === "week"
+    ? visibleEvents.filter((item) => {
+        const date = parseISO(item.startsAt);
+        return date >= new Date(today.toDateString()) && date < weekEnd;
+      })
+    : visibleEvents;
+  const selectedMember = snapshot.members.find((member) => member.id === filterId);
+  const countdownLabel = (item: ScheduleItem) => {
+    const target = item.calendarDate ? new Date(`${item.calendarDate}T00:00:00`) : parseISO(item.startsAt);
+    const days = Math.ceil((target.getTime() - new Date().setHours(0, 0, 0, 0)) / 86_400_000);
+    if (days < 0) return null;
+    if (days === 0) return "Today";
+    if (days === 1) return "Tomorrow";
+    return `${days} days`;
+  };
+  const [routineTitle, setRoutineTitle] = useState("");
+  const [routineMemberId, setRoutineMemberId] = useState(snapshot.members[0]?.id ?? "");
+  const [routineFrequency, setRoutineFrequency] = useState<Routine["frequency"]>("daily");
+  const [routineWeekday, setRoutineWeekday] = useState(new Date().getDay());
+  const [newMemberName, setNewMemberName] = useState("");
+  const [rewardTitle, setRewardTitle] = useState("");
+  const [rewardCost, setRewardCost] = useState("50");
+  const [goalTitle, setGoalTitle] = useState("");
+  const [goalTarget, setGoalTarget] = useState("500");
+  const calendarDays = Array.from({ length: 35 }, (_, index) => {
+    const first = new Date(today.getFullYear(), today.getMonth(), 1);
+    first.setDate(first.getDate() - first.getDay() + index);
+    return first;
+  });
+
+  if (view === "people") {
+    return (
+      <div className="settings-view">
+        <header><p className="eyebrow">Household</p><h1>People</h1><p>Choose a person to see their part of the plan.</p></header>
+        <div className="settings-grid">
+          <section className="settings-card"><button className={!filterId ? "primary-button" : "secondary-button"} onClick={() => onFilter(null)}><Users /> Everyone</button></section>
+          <section className="settings-card"><div><h2>Add someone</h2><p>Household members can have their own view and assignments.</p></div><input aria-label="New member name" placeholder="Name" value={newMemberName} onChange={(event) => setNewMemberName(event.target.value)} /><button className="primary-button" onClick={() => { if (!newMemberName.trim()) return; onSaveMember({ id: id(), householdId: snapshot.household.id, name: newMemberName.trim(), colorToken: "sky", symbol: newMemberName.trim().charAt(0).toUpperCase(), sortOrder: snapshot.members.length, role: "other" }); setNewMemberName(""); }}>Add member</button></section>
+          {snapshot.members.map((member) => (
+            <section className="settings-card" key={member.id}>
+              <div className={`settings-icon color-${member.colorToken}`}><Avatar member={member} /></div>
+              <div><input aria-label={`Name for ${member.name}`} value={member.name} onChange={(event) => onSaveMember({ ...member, name: event.target.value, symbol: event.target.value.trim().charAt(0).toUpperCase() || member.symbol })} /><select aria-label={`Role for ${member.name}`} value={member.role ?? "other"} onChange={(event) => onSaveMember({ ...member, role: event.target.value as HouseholdMember["role"] })}><option value="parent">Parent</option><option value="child">Child</option><option value="teen">Teen</option><option value="grandparent">Grandparent</option><option value="other">Other</option></select><label className="inline-choice"><input type="checkbox" checked={member.rewardApprovalRequired ?? member.role === "child"} onChange={(event) => onSaveMember({ ...member, rewardApprovalRequired: event.target.checked })} /> Approve Stars</label></div>
+              <button className={filterId === member.id ? "primary-button" : "secondary-button"} onClick={() => { onFilter(member.id); onView("today"); }}>View plan</button><button className="icon-button" aria-label={`Remove ${member.name}`} onClick={() => onDeleteMember(member)}><Trash2 /></button>
+            </section>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (view === "rewards") {
+    const ledger = snapshot.rewards ?? [];
+    const definitions = snapshot.rewardDefinitions ?? [];
+    const goals = snapshot.rewardGoals ?? [];
+    const activities = [...(snapshot.activities ?? [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8);
+    const leaderboard = snapshot.members.map((member) => ({ member, stars: rewardBalance(member.id, snapshot.tasks, ledger) })).sort((a, b) => b.stars - a.stars);
+    const saveDefinition = () => {
+      if (!parentUnlocked || !rewardTitle.trim()) return;
+      const now = new Date().toISOString();
+      onSaveRewardDefinition({ id: id(), householdId: snapshot.household.id, title: rewardTitle.trim(), cost: Math.max(1, Number(rewardCost) || 1), icon: "⭐", active: true, createdAt: now, updatedAt: now });
+      setRewardTitle("");
+    };
+    const saveGoal = () => {
+      if (!parentUnlocked || !goalTitle.trim()) return;
+      const now = new Date().toISOString();
+      onSaveRewardGoal({ id: id(), householdId: snapshot.household.id, title: goalTitle.trim(), targetStars: Math.max(1, Number(goalTarget) || 1), active: true, createdAt: now, updatedAt: now });
+      setGoalTitle("");
+    };
+    return (
+      <div className="settings-view">
+        <header><p className="eyebrow">Celebrate progress</p><h1>Rewards</h1><p>Stars make progress visible without making the family compete for attention.</p></header>
+        <section className="rewards-leaderboard settings-card"><div><p className="section-kicker">This week</p><h2>Personal progress</h2><p>Weekly rankings are optional; lifetime Stars and streaks stay with each person.</p></div><div className="leaderboard-list">{leaderboard.slice(0, 5).map(({ member, stars }, index) => <div className="leaderboard-row" key={member.id}><span>{index + 1}</span><Avatar member={member} small /><strong>{member.name}</strong><b>⭐ {stars}</b></div>)}</div></section>
+        <div className="settings-grid rewards-profile-grid">{snapshot.members.map((member) => { const stars = rewardBalance(member.id, snapshot.tasks, ledger); const streak = currentStreak(member.id, snapshot.tasks); const pending = ledger.filter((entry) => entry.memberId === member.id && entry.status === "pending"); return <section className="settings-card reward-profile-card" key={member.id}><div className={`settings-icon color-${member.colorToken}`}><Avatar member={member} /></div><div><h2>{member.name}</h2><p>⭐ {stars} Stars · 🔥 {streak}-day streak · Level {levelForStars(stars)}</p><small>{snapshot.tasks.filter((task) => task.completedAt && task.assigneeIds.includes(member.id)).length} tasks completed</small>{pending.length > 0 && <p className="reward-pending">{pending.length} awaiting parent approval</p>}</div><div className="button-row"><button className="primary-button" onClick={() => { if (!parentUnlocked) return onRequestParentUnlock(); onSaveReward({ id: id(), householdId: snapshot.household.id, memberId: member.id, points: 1, reason: "Parent-awarded star", sourceType: "manual", status: "approved", createdAt: new Date().toISOString() }); }}>Add star</button><button className="secondary-button" onClick={() => onFilter(member.id)}>View plan</button></div></section>; })}</div>
+        {ledger.some((entry) => entry.status === "pending") && <section className="settings-card reward-approvals"><div><p className="section-kicker">Parent review</p><h2>Approvals</h2><p>Child completions stay pending until a parent confirms the work.</p></div><div className="approval-list">{ledger.filter((entry) => entry.status === "pending").map((entry) => { const member = snapshot.members.find((candidate) => candidate.id === entry.memberId); return <div className="approval-row" key={entry.id}><span><strong>{member?.name ?? "Member"}</strong> completed a task for {entry.points} ⭐</span><div className="button-row"><button className="primary-button" onClick={() => { if (!parentUnlocked) return onRequestParentUnlock(); onSaveReward({ ...entry, status: "approved", approvedBy: "parent", approvedAt: new Date().toISOString() }); }}>Approve</button><button className="secondary-button" onClick={() => { if (!parentUnlocked) return onRequestParentUnlock(); onSaveReward({ ...entry, status: "denied", approvedBy: "parent", approvedAt: new Date().toISOString() }); }}>Needs more work</button></div></div>; })}</div></section>}
+        <section className="settings-card rewards-shop"><div><p className="section-kicker">Rewards shop</p><h2>Give Stars somewhere to go</h2><p>Create rewards the household can request when they have enough Stars.</p></div><div className="reward-definition-list">{definitions.filter((reward) => reward.active).map((reward) => <div className="reward-definition-row" key={reward.id}><span className="reward-icon">{reward.icon}</span><div><strong>{reward.title}</strong><small>{reward.description ?? "A parent-defined household reward"}</small></div><b>{reward.cost} ⭐</b><button className="secondary-button" onClick={() => { const member = snapshot.members.find((candidate) => candidate.id === filterId) ?? snapshot.members[0]; if (!member) return; onSaveRedemption({ id: id(), householdId: snapshot.household.id, rewardId: reward.id, memberId: member.id, cost: reward.cost, status: "requested", requestedAt: new Date().toISOString() }); }}>Request</button></div>)}</div>{(snapshot.rewardRedemptions ?? []).filter((redemption) => redemption.status === "requested").map((redemption) => { const member = snapshot.members.find((candidate) => candidate.id === redemption.memberId); const reward = definitions.find((candidate) => candidate.id === redemption.rewardId); return <div className="redemption-row" key={redemption.id}><span>{member?.name ?? "Member"} requested {reward?.title ?? "a reward"}</span><button className="secondary-button" onClick={() => { if (!parentUnlocked) return onRequestParentUnlock(); onSaveRedemption({ ...redemption, status: "approved", decidedAt: new Date().toISOString(), decidedBy: "parent" }); onSaveReward({ id: id(), householdId: redemption.householdId, memberId: redemption.memberId, points: -redemption.cost, reason: `Redeemed ${reward?.title ?? "reward"}`, sourceType: "redemption", sourceId: redemption.id, status: "approved", createdAt: new Date().toISOString() }); }}>Approve</button></div>; })}<div className="reward-create-form"><input aria-label="Reward title" placeholder="Reward name" value={rewardTitle} onChange={(event) => setRewardTitle(event.target.value)} /><input aria-label="Reward cost" type="number" min="1" value={rewardCost} onChange={(event) => setRewardCost(event.target.value)} /> <button className="primary-button" onClick={saveDefinition}>{parentUnlocked ? "Add reward" : "Unlock to add"}</button></div></section>
+        <section className="settings-card shared-goal-card"><div><p className="section-kicker">Shared goals</p><h2>Cooperative first</h2><p>The whole family can contribute toward something everyone wants.</p></div><div className="goal-list">{goals.filter((goal) => goal.active).map((goal) => { const progress = Math.min(goal.targetStars, ledger.filter((entry) => entry.points > 0).reduce((total, entry) => total + entry.points, 0)); return <div className="goal-row" key={goal.id}><div className="goal-row-heading"><strong>{goal.title}</strong><span>{progress} / {goal.targetStars} ⭐</span></div><div className="goal-progress"><span style={{ width: `${Math.round((progress / goal.targetStars) * 100)}%` }} /></div></div>; })}</div><div className="reward-create-form"><input aria-label="Shared goal title" placeholder="Family movie night" value={goalTitle} onChange={(event) => setGoalTitle(event.target.value)} /><input aria-label="Shared goal target" type="number" min="1" value={goalTarget} onChange={(event) => setGoalTarget(event.target.value)} /><button className="primary-button" onClick={saveGoal}>{parentUnlocked ? "Add goal" : "Unlock to add"}</button></div></section>
+        <section className="settings-card activity-feed"><div><p className="section-kicker">Family activity</p><h2>Recent wins</h2><p>Encouragement stays visible without turning the board into surveillance.</p></div><div className="activity-list">{activities.length ? activities.map((activity) => <div className="activity-row" key={activity.id}><span>✨</span><span>{activity.summary}</span><small>{format(parseISO(activity.createdAt), "MMM d")}</small><div className="reaction-actions">{(["heart", "clap", "celebrate"] as const).map((reaction) => <button key={reaction} aria-label={`React with ${reaction}`} onClick={() => { const member = snapshot.members.find((candidate) => candidate.id === filterId) ?? snapshot.members[0]; if (member) onSaveActivity({ id: id(), householdId: snapshot.household.id, type: "reaction", entityId: activity.id, memberIds: [member.id], summary: `${member.name} reacted to a family win`, createdAt: new Date().toISOString() }); }}> {reaction === "heart" ? "❤️" : reaction === "clap" ? "👏" : "🎉"}</button>)}</div></div>) : <p>No wins yet—complete a task to start the feed.</p>}</div></section>
+      </div>
+    );
+  }
+
+  if (view === "photos") {
+    return (
+      <div className="settings-view">
+        <header><p className="eyebrow">Local memories</p><h1>Photos</h1><p>Choose an image from this device. OpenWall does not upload it.</p></header>
+        <section className="settings-card photo-manager">
+          {photoData ? <img src={photoData} alt="Selected household photo" /> : <div className="photo-empty"><Image /><p>No photo selected yet.</p></div>}
+          <label className="secondary-button">{photoData ? "Replace photo" : "Choose a photo"}<input className="sr-only" type="file" accept="image/*" onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+              const value = String(reader.result);
+              const photo: PhotoAsset = { id: snapshot.photos?.[0]?.id ?? id(), householdId: snapshot.household.id, name: file.name, mimeType: file.type || "image/*", dataUrl: value, createdAt: snapshot.photos?.[0]?.createdAt ?? new Date().toISOString() };
+              setPhotoData(value);
+              onSavePhoto(photo);
+            };
+            reader.readAsDataURL(file);
+          }} /></label>
+          {photoData && <button className="danger-button" onClick={() => { const photo = snapshot.photos?.[0]; setPhotoData(null); if (photo) onDeletePhoto(photo); }}>Remove photo</button>}
+        </section>
+      </div>
+    );
+  }
+
+  if (view === "history") {
+    const entries = [...(snapshot.history ?? [])].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
+    const memberEntries = filterId ? entries.filter((entry) => entry.memberIds.includes(filterId)) : entries;
+    return <div className="settings-view"><header><p className="eyebrow">Household memory</p><h1>History</h1><p>Completed, edited, and restored work stays easy to review.</p></header><section className="settings-card"><div className="filter-row"><label>Person<select aria-label="Filter history by person" value={filterId ?? ""} onChange={(event) => onFilter(event.target.value || null)}><option value="">Everyone</option>{snapshot.members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label></div><div className="cork-task-list">{memberEntries.length ? memberEntries.map((entry) => <div className="history-row" key={entry.id}><CheckCircle2 /><span>{entry.summary}</span><small>{format(parseISO(entry.occurredAt), "MMM d, h:mm a")}</small></div>) : <p>No history for this person yet.</p>}</div></section></div>;
+  }
+
+  const heading = view === "lists" ? "Lists" : view === "calendar" ? "Calendar" : "Week";
+  if (view === "calendar") {
+    const upcoming = visibleEvents.filter((item) => parseISO(item.endsAt) >= today).slice(0, 12);
+    return (
+      <div className="settings-view">
+        <header><p className="eyebrow">{selectedMember ? `${selectedMember.name}'s plan` : "Household plan"}</p><h1>Calendar</h1><p>See the month at a glance. Future items appear as soon as they are saved.</p></header>
+        <section className="settings-card calendar-card">
+          <div className="calendar-weekdays">{["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => <span key={day}>{day}</span>)}</div>
+          <div className="calendar-grid">{calendarDays.map((day) => {
+            const key = format(day, "yyyy-MM-dd");
+            const dayEvents = visibleEvents.filter((item) => (item.calendarDate ?? format(parseISO(item.startsAt), "yyyy-MM-dd")) === key);
+            return <div className={`calendar-day ${day.getMonth() !== today.getMonth() ? "is-muted" : ""}`} key={key}><time>{format(day, "d")}</time>{dayEvents.slice(0, 3).map((item) => <button key={item.id} onClick={() => onEdit({ kind: "event", value: item })}>{item.title}</button>)}</div>;
+          })}</div>
+          <button className="primary-button" onClick={() => onEdit({ kind: "event" })}><Plus /> Add calendar item</button>
+        </section>
+        <section className="settings-card upcoming-card"><div className="settings-icon"><CalendarDays /></div><div><h2>Upcoming</h2><p>Future plans appear here immediately after saving.</p></div><div className="cork-task-list">{upcoming.length ? upcoming.map((item) => <button className="upcoming-row" key={item.id} onClick={() => onEdit({ kind: "event", value: item })}><span>{item.title}</span><small>{item.allDay ? (item.calendarDate ?? format(parseISO(item.startsAt), "MMM d")) : format(parseISO(item.startsAt), "MMM d · h:mm a")}</small></button>) : <p>No upcoming items yet.</p>}</div></section>
+      </div>
+    );
+  }
+  return (
+    <div className="settings-view">
+      <header><p className="eyebrow">{selectedMember ? `${selectedMember.name}'s plan` : "Household plan"}</p><h1>{heading}</h1><p>{view === "lists" ? "Shared tasks and lists for the household." : "Future plans are visible as soon as they are saved."}</p></header>
+      <div className="settings-grid">
+        <section className="settings-card"><div className="settings-icon"><CalendarDays /></div><div><h2>Schedule</h2><p>{events.length} item{events.length === 1 ? "" : "s"} visible</p></div><button className="secondary-button" onClick={() => onEdit({ kind: "event" })}><Plus /> Add event</button></section>
+        {view === "lists" && <section className="settings-card"><div className="settings-icon"><RotateCcw /></div><div><h2>Repeat a routine</h2><p>Create a chore once and keep it on the family’s rhythm.</p></div><input aria-label="Routine title" placeholder="Morning checklist" value={routineTitle} onChange={(event) => setRoutineTitle(event.target.value)} /><select aria-label="Routine frequency" value={routineFrequency} onChange={(event) => setRoutineFrequency(event.target.value as Routine["frequency"])}><option value="daily">Every day</option><option value="weekly">Every week</option><option value="school-days">School days</option></select>{routineFrequency === "weekly" && <select aria-label="Routine weekday" value={routineWeekday} onChange={(event) => setRoutineWeekday(Number(event.target.value))}>{["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day, index) => <option key={day} value={index}>{day}</option>)}</select>}<select aria-label="Routine assignee" value={routineMemberId} onChange={(event) => setRoutineMemberId(event.target.value)}>{snapshot.members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select><button className="primary-button" onClick={() => { if (!routineTitle.trim()) return; const now = new Date().toISOString(); onSaveRoutine({ id: id(), householdId: snapshot.household.id, title: routineTitle.trim(), assigneeIds: [routineMemberId], frequency: routineFrequency, ...(routineFrequency === "weekly" ? { weekdays: [routineWeekday] } : {}), createdAt: now, updatedAt: now }); setRoutineTitle(""); }}>Add routine</button></section>}
+        {view !== "lists" && events.map((item) => <section className="settings-card" key={item.id}><div className="settings-icon"><CalendarDays /></div><div><h2>{item.title}</h2><p>{item.allDay || item.kind === "school-closure" ? "All day" : format(parseISO(item.startsAt), "EEE, MMM d · h:mm a")}{countdownLabel(item) ? ` · ${countdownLabel(item)}` : ""}</p></div><button className="secondary-button" onClick={() => onEdit({ kind: "event", value: item })}>Edit</button></section>)}
+        {view === "lists" && visibleTasks.map((task) => <section className="settings-card" key={task.id}><div className="settings-icon"><ListChecks /></div><div><h2>{task.title}</h2><p>{task.completedAt ? "Complete" : task.dueDate ? `Due ${task.dueDate}` : "No due date"}</p></div><button className={task.completedAt ? "secondary-button" : "primary-button"} onClick={() => onComplete(task)}>{task.completedAt ? "Completed" : "Complete"}</button></section>)}
+        {view === "lists" && (snapshot.routines ?? []).map((routine) => <section className="settings-card" key={routine.id}><div className="settings-icon"><RotateCcw /></div><div><h2>{routine.title}</h2><p>Repeats {routine.frequency}; assigned to {routine.assigneeIds.map((memberId) => getMember(memberId, snapshot.members)?.name).filter(Boolean).join(", ")}</p></div><button className="secondary-button" onClick={() => onUpdateRoutine({ ...routine, skippedDates: [...(routine.skippedDates ?? []), todayInput()], updatedAt: new Date().toISOString() })}>Skip today</button></section>)}
+      </div>
+    </div>
+  );
+}
+
 function SettingsView({
   snapshot,
   onImport,
   onSampleReset,
+  onTestSampleReset,
   onHouseholdReset,
   notice,
   onStartTour,
@@ -1317,10 +1714,13 @@ function SettingsView({
   installPrompt,
   installed,
   onInstall,
+  parentUnlocked,
+  onRequestParentUnlock,
 }: {
   snapshot: HouseholdSnapshot;
   onImport: (file: File) => void;
   onSampleReset: () => void;
+  onTestSampleReset: () => void;
   onHouseholdReset: () => void;
   notice: Notice;
   onStartTour: (trigger?: HTMLElement | null) => void;
@@ -1335,10 +1735,19 @@ function SettingsView({
   installPrompt: BeforeInstallPromptEvent | null;
   installed: boolean;
   onInstall: () => Promise<void>;
+  parentUnlocked: boolean;
+  onRequestParentUnlock: () => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const exportData = () => {
-    const blob = new Blob([serializeBackup(snapshot)], { type: "application/json" });
+    let boardWidgets: HouseholdSnapshot["boardWidgets"];
+    try {
+      const raw = localStorage.getItem(`openwall-board-${snapshot.household.id}`);
+      boardWidgets = raw ? (JSON.parse(raw) as HouseholdSnapshot["boardWidgets"]) : undefined;
+    } catch {
+      boardWidgets = undefined;
+    }
+    const blob = new Blob([serializeBackup(snapshot, boardWidgets)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
@@ -1362,7 +1771,7 @@ function SettingsView({
         <CoachMark
           tipId={TIP_IDS.SETTINGS_BACKUP}
           kicker="Backup & privacy"
-          message="OpenWall stores household members, schedules, and tasks on this device. The current backup protects those records, but not board layout or countdown cards."
+          message="OpenWall stores household records and board layout on this device. Export a backup before clearing browser data."
           onDismiss={onDismissTip}
         />
       )}
@@ -1378,6 +1787,11 @@ function SettingsView({
         onChange={onAppearanceChange}
         onReset={onAppearanceReset}
       />
+      <section className="settings-card parent-protection-card">
+        <div className="settings-icon"><ShieldCheck /></div>
+        <div><h2>Parent mode</h2><p>{parentUnlocked ? "Protected actions are unlocked for 15 minutes on this device." : hasParentPin() ? "Reward edits and approvals are protected by your local parent PIN." : "Create a local parent PIN before changing reward rules or approving Stars."}</p></div>
+        <button className={parentUnlocked ? "secondary-button" : "primary-button"} onClick={onRequestParentUnlock}>{parentUnlocked ? "Parent mode on" : hasParentPin() ? "Unlock parent mode" : "Create parent PIN"}</button>
+      </section>
       <div className="settings-grid">
         <section className="settings-card">
           <div className="settings-icon">
@@ -1386,8 +1800,8 @@ function SettingsView({
           <div>
             <h2>Back up your household</h2>
             <p>
-              Download a readable, versioned copy of schedules, members, and tasks. (Board layout,
-              countdown clocks, and guide state remain stored on this device).
+              Download a readable, versioned copy of household records and the current board layout.
+              Device-only Guide preferences remain on this device.
             </p>
           </div>
           <button className="secondary-button" onClick={exportData}>
@@ -1401,8 +1815,7 @@ function SettingsView({
           <div>
             <h2>Restore from a backup</h2>
             <p>
-              OpenWall checks the file before replacing schedules, members, and tasks. (Board layout
-              and countdown clocks remain in local browser storage).
+              OpenWall checks the file before replacing household records and board layout.
             </p>
           </div>
           <input
@@ -1465,6 +1878,9 @@ function SettingsView({
           <button className="secondary-button" onClick={onSampleReset}>
             <RotateCcw /> Load sample
           </button>
+          <button className="secondary-button" onClick={onTestSampleReset}>
+            <Users /> Load 8-person test bench
+          </button>
         </section>
         <section className="settings-card danger-zone">
           <div className="settings-icon">
@@ -1517,6 +1933,15 @@ export default function App() {
   const [tourTrigger, setTourTrigger] = useState<HTMLElement | null>(null);
   const [tourStep, setTourStep] = useState(0);
   const [guideInitialTab, setGuideInitialTab] = useState<"articles" | "releases">("articles");
+  const [parentUnlocked, setParentUnlocked] = useState(() => isParentUnlocked());
+  const [pinPrompt, setPinPrompt] = useState(false);
+  const [pinValue, setPinValue] = useState("");
+  const [pinSetupMode, setPinSetupMode] = useState(false);
+  useEffect(() => {
+    if (!parentUnlocked) return;
+    const timer = window.setInterval(() => { if (!isParentUnlocked()) setParentUnlocked(false); }, 30_000);
+    return () => window.clearInterval(timer);
+  }, [parentUnlocked]);
   const [postUpdateIntent, setPostUpdateIntent] = useState<boolean>(() => {
     if (typeof window === "undefined" || !window.sessionStorage) return false;
     try {
@@ -1547,6 +1972,24 @@ export default function App() {
 
   const handleAppearanceReset = () => {
     setAppearance(DEFAULT_APPEARANCE);
+  };
+
+  const requestParentUnlock = () => {
+    if (!hasParentPin()) { setPinSetupMode(true); setPinPrompt(true); return; }
+    setPinSetupMode(false); setPinPrompt(true);
+  };
+  const handlePinSubmit = async () => {
+    try {
+      if (pinSetupMode) {
+        await setParentPin(pinValue);
+        setParentUnlocked(true);
+        setPinPrompt(false);
+        setPinValue("");
+        setNotice({ tone: "success", message: "Parent mode is unlocked for 15 minutes on this device." });
+      } else if (await unlockParentMode(pinValue)) {
+        setParentUnlocked(true); setPinPrompt(false); setPinValue("");
+      } else setNotice({ tone: "error", message: "That PIN didn’t match. Try again." });
+    } catch (error) { setNotice({ tone: "error", message: error instanceof Error ? error.message : "Could not save the PIN." }); }
   };
 
   const handleDismissTip = (tipId: string) => {
@@ -1631,6 +2074,31 @@ export default function App() {
   useEffect(() => {
     repository
       .load()
+      .then(async (current) => {
+        if (!current || !current.routines?.length) return current;
+        const occurrenceDate = todayInput();
+        const weekday = new Date(`${occurrenceDate}T12:00:00`).getDay();
+        const existing = new Set(
+          current.tasks
+            .filter((task) => task.occurrenceDate === occurrenceDate)
+            .map((task) => task.routineId),
+        );
+        const additions = current.routines
+          .filter((routine) => {
+            if (existing.has(routine.id) || routine.skippedDates?.includes(occurrenceDate)) return false;
+            if (routine.frequency === "weekly") return routine.weekdays?.includes(weekday) ?? false;
+            if (routine.frequency === "school-days") return weekday > 0 && weekday < 6;
+            return true;
+          })
+          .map((routine) => ({
+            id: id(), householdId: routine.householdId, title: routine.title,
+            assigneeIds: routine.assigneeIds, dueDate: occurrenceDate, routineId: routine.id,
+            occurrenceDate, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+          }));
+        if (!additions.length) return current;
+        await Promise.all(additions.map((task) => repository.saveTask(task)));
+        return { ...current, tasks: [...current.tasks, ...additions] };
+      })
       .then(setSnapshot)
       .catch(() =>
         setNotice({ tone: "error", message: "OpenWall couldn’t read this device’s saved data." }),
@@ -1765,9 +2233,19 @@ export default function App() {
 
   const saveSnapshot = async (data: HouseholdSnapshot) => {
     await repository.replace(data);
+    if (data.boardWidgets) {
+      try {
+        localStorage.setItem(`openwall-board-${data.household.id}`, JSON.stringify(data.boardWidgets));
+      } catch {
+        // The household remains recoverable even when board storage is unavailable.
+      }
+    }
     setSnapshot(data);
     setSetup(false);
     setView("today");
+    if (setup && !hasParentPin()) {
+      setNotice({ tone: "success", message: "Your board is ready. Create a parent PIN anytime from Settings." });
+    }
   };
   const memberMap = useMemo(
     () => new Map(snapshot?.members.map((member) => [member.id, member])),
@@ -1788,6 +2266,7 @@ export default function App() {
     return (
       <Welcome
         onSample={() => saveSnapshot(createSampleHousehold())}
+        onTestSample={() => saveSnapshot(createEightPersonTestHousehold())}
         onSetup={() => setSetup(true)}
         online={online}
         offlineReady={offlineReady}
@@ -1799,14 +2278,21 @@ export default function App() {
 
   const saveEvent = async (item: ScheduleItem) => {
     await repository.saveScheduleItem(item);
+    const historyEntry: HistoryEntry = {
+      id: id(), householdId: item.householdId, entityId: item.id, entityType: "schedule",
+      action: "edited", occurredAt: item.updatedAt,
+      memberIds: item.memberIds, summary: `Saved ${item.title}`,
+    };
+    await repository.saveHistory(historyEntry);
     setSnapshot((current) =>
       current
         ? {
             ...current,
             scheduleItems: [
-              ...current.scheduleItems.filter((value) => value.id !== item.id),
-              item,
-            ].sort((a, b) => a.startsAt.localeCompare(b.startsAt)),
+            ...current.scheduleItems.filter((value) => value.id !== item.id),
+            item,
+          ].sort((a, b) => a.startsAt.localeCompare(b.startsAt)),
+            history: [...(current.history ?? []), historyEntry],
           }
         : current,
     );
@@ -1829,6 +2315,11 @@ export default function App() {
       action: "Delete item",
       run: async () => {
         await repository.deleteScheduleItem(eventId);
+        if (item) {
+          const historyEntry: HistoryEntry = { id: id(), householdId: item.householdId, entityId: item.id, entityType: "schedule", action: "deleted", occurredAt: new Date().toISOString(), memberIds: item.memberIds, summary: `Deleted ${item.title}` };
+          await repository.saveHistory(historyEntry);
+          setSnapshot((current) => current ? { ...current, history: [...(current.history ?? []), historyEntry] } : current);
+        }
         setSnapshot((current) =>
           current
             ? {
@@ -1850,6 +2341,11 @@ export default function App() {
       action: "Delete task",
       run: async () => {
         await repository.deleteTask(taskId);
+        if (item) {
+          const historyEntry: HistoryEntry = { id: id(), householdId: item.householdId, entityId: item.id, entityType: "task", action: "deleted", occurredAt: new Date().toISOString(), memberIds: item.assigneeIds, summary: `Deleted ${item.title}` };
+          await repository.saveHistory(historyEntry);
+          setSnapshot((current) => current ? { ...current, history: [...(current.history ?? []), historyEntry] } : current);
+        }
         setSnapshot((current) =>
           current
             ? { ...current, tasks: current.tasks.filter((value) => value.id !== taskId) }
@@ -1860,12 +2356,66 @@ export default function App() {
       },
     });
   };
-  const toggleTask = async (task: HouseholdTask) =>
-    saveTask({
+  const toggleTask = async (task: HouseholdTask) => {
+    const completing = !task.completedAt;
+    const occurredAt = new Date().toISOString();
+    await saveTask({
       ...task,
-      completedAt: task.completedAt ? undefined : new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      completedAt: completing ? occurredAt : undefined,
+      updatedAt: occurredAt,
     });
+    if (completing) {
+      for (const memberId of task.assigneeIds) {
+        const member = snapshot.members.find((candidate) => candidate.id === memberId);
+        if (!member || hasAwardForTask(task.id, memberId, snapshot.rewards ?? [])) continue;
+        const pending = requiresRewardApproval(member);
+        const award: RewardLedgerEntry = { id: id(), householdId: task.householdId, memberId, points: taskStarValue(task), reason: `Completed ${task.title}`, sourceTaskId: task.id, sourceType: "task", sourceId: task.id, status: pending ? "pending" : "approved", ...(pending ? {} : { approvedAt: occurredAt }), createdAt: occurredAt };
+        await repository.saveReward(award);
+        const activity: ActivityEntry = { id: id(), householdId: task.householdId, type: pending ? "completion" : "award", entityId: task.id, memberIds: [memberId], summary: pending ? `${member.name} completed ${task.title} — awaiting approval` : `${member.name} completed ${task.title} and earned ${taskStarValue(task)} Stars`, createdAt: occurredAt };
+        await repository.saveActivity(activity);
+        setSnapshot((current) => current ? { ...current, rewards: [...(current.rewards ?? []), award], activities: [...(current.activities ?? []), activity] } : current);
+      }
+    }
+    const entry: HistoryEntry = {
+      id: id(),
+      householdId: task.householdId,
+      entityId: task.id,
+      entityType: "task",
+      action: completing ? "completed" : "edited",
+      occurredAt,
+      memberIds: task.assigneeIds,
+      summary: `${completing ? "Completed" : "Reopened"} ${task.title}`,
+    };
+    await repository.saveHistory(entry);
+    setSnapshot((current) => (current ? { ...current, history: [...(current.history ?? []), entry] } : current));
+  };
+  const saveRewardEntry = async (entry: RewardLedgerEntry) => {
+    await repository.saveReward(entry);
+    const member = snapshot.members.find((candidate) => candidate.id === entry.memberId);
+    const activity: ActivityEntry = { id: id(), householdId: entry.householdId, type: "award", entityId: entry.id, memberIds: [entry.memberId], summary: `${entry.points > 0 ? "Awarded" : "Corrected"} ${Math.abs(entry.points)} Stars for ${member?.name ?? "member"}: ${entry.reason}`, createdAt: entry.createdAt };
+    await repository.saveActivity(activity);
+    setSnapshot((current) => current ? { ...current, rewards: [...(current.rewards ?? []).filter((value) => value.id !== entry.id), entry], activities: [...(current.activities ?? []), activity] } : current);
+  };
+  const saveRewardDefinition = async (definition: RewardDefinition) => {
+    await repository.saveRewardDefinition(definition);
+    setSnapshot((current) => current ? { ...current, rewardDefinitions: [...(current.rewardDefinitions ?? []).filter((value) => value.id !== definition.id), definition] } : current);
+  };
+  const saveRewardGoal = async (goal: RewardGoal) => {
+    await repository.saveRewardGoal(goal);
+    setSnapshot((current) => current ? { ...current, rewardGoals: [...(current.rewardGoals ?? []).filter((value) => value.id !== goal.id), goal] } : current);
+  };
+  const saveRedemption = async (redemption: RewardRedemption) => {
+    await repository.saveRewardRedemption(redemption);
+    const member = snapshot.members.find((candidate) => candidate.id === redemption.memberId);
+    const activity: ActivityEntry = { id: id(), householdId: redemption.householdId, type: "redemption", entityId: redemption.id, memberIds: [redemption.memberId], summary: redemption.status === "requested" ? `${member?.name ?? "Member"} requested a reward` : `Reward request ${redemption.status}`, createdAt: redemption.decidedAt ?? redemption.requestedAt };
+    await repository.saveActivity(activity);
+    setSnapshot((current) => current ? { ...current, rewardRedemptions: [...(current.rewardRedemptions ?? []).filter((value) => value.id !== redemption.id), redemption], activities: [...(current.activities ?? []), activity] } : current);
+    if (redemption.status === "requested") setNotice({ tone: "success", message: "Reward request saved for parent review." });
+  };
+  const saveActivity = async (activity: ActivityEntry) => {
+    await repository.saveActivity(activity);
+    setSnapshot((current) => current ? { ...current, activities: [...(current.activities ?? []), activity] } : current);
+  };
   const importFile = async (file: File) => {
     try {
       const parsed = parseBackup(await file.text());
@@ -1895,6 +2445,17 @@ export default function App() {
         await saveSnapshot(createSampleHousehold());
         setConfirm(null);
         setNotice({ tone: "success", message: "Fresh sample household loaded." });
+      },
+    });
+  const resetEightPersonSample = () =>
+    setConfirm({
+      title: "Load the 8-person test bench?",
+      body: "This replaces the current household with rich fictional data for layout and filtering tests. Export a backup first if you want to keep it.",
+      action: "Load test bench",
+      run: async () => {
+        await saveSnapshot(createEightPersonTestHousehold());
+        setConfirm(null);
+        setNotice({ tone: "success", message: "8-person fictional test household loaded." });
       },
     });
   const erase = () =>
@@ -1984,11 +2545,12 @@ export default function App() {
             onStartTour={handleStartTour}
             initialTab={guideInitialTab}
           />
-        ) : (
+        ) : view === "settings" ? (
           <SettingsView
             snapshot={snapshot}
             onImport={importFile}
             onSampleReset={resetSample}
+            onTestSampleReset={resetEightPersonSample}
             onHouseholdReset={erase}
             notice={notice}
             onStartTour={handleStartTour}
@@ -2003,6 +2565,72 @@ export default function App() {
             installPrompt={installPrompt}
             installed={installed}
             onInstall={handleInstall}
+            parentUnlocked={parentUnlocked}
+            onRequestParentUnlock={requestParentUnlock}
+          />
+        ) : (
+          <DashboardView
+            view={view}
+            snapshot={snapshot}
+            filterId={filterId}
+            onFilter={setFilterId}
+            onView={setView}
+            onEdit={setEditor}
+            onComplete={toggleTask}
+            onSaveRoutine={async (routine) => {
+              await repository.saveRoutine(routine);
+              const now = new Date().toISOString();
+              const occurrence: HouseholdTask = {
+                id: id(),
+                householdId: routine.householdId,
+                title: routine.title,
+                assigneeIds: routine.assigneeIds,
+                dueDate: todayInput(),
+                routineId: routine.id,
+                occurrenceDate: todayInput(),
+                createdAt: now,
+                updatedAt: now,
+              };
+              await repository.saveTask(occurrence);
+              setSnapshot((current) => (current ? { ...current, routines: [...(current.routines ?? []), routine], tasks: [...current.tasks, occurrence] } : current));
+            }}
+            onSaveMember={async (member) => {
+              await repository.saveMember(member);
+              setSnapshot((current) => current ? { ...current, members: current.members.some((value) => value.id === member.id) ? current.members.map((value) => value.id === member.id ? member : value) : [...current.members, member] } : current);
+            }}
+            onDeleteMember={(member) => setConfirm({
+              title: `Remove ${member.name}?`,
+              body: "Their assignments will remain visible but no longer be assigned to them.",
+              action: "Remove member",
+              run: async () => {
+                await repository.deleteMember(member.id);
+                setSnapshot((current) => current ? { ...current, members: current.members.filter((value) => value.id !== member.id), scheduleItems: current.scheduleItems.map((item) => ({ ...item, memberIds: item.memberIds.filter((value) => value !== member.id) })), tasks: current.tasks.map((task) => ({ ...task, assigneeIds: task.assigneeIds.filter((value) => value !== member.id) })), routines: (current.routines ?? []).map((routine) => ({ ...routine, assigneeIds: routine.assigneeIds.filter((value) => value !== member.id) })) } : current);
+                setConfirm(null);
+              },
+            })}
+            onUpdateRoutine={async (routine) => {
+              await repository.saveRoutine(routine);
+              const historyEntry: HistoryEntry | undefined = routine.skippedDates?.length ? { id: id(), householdId: routine.householdId, entityId: routine.id, entityType: "routine", action: "skipped", occurredAt: new Date().toISOString(), memberIds: routine.assigneeIds, summary: `Skipped ${routine.title} for today` } : undefined;
+              if (historyEntry) await repository.saveHistory(historyEntry);
+              setSnapshot((current) => current ? { ...current, routines: (current.routines ?? []).map((value) => value.id === routine.id ? routine : value), ...(historyEntry ? { history: [...(current.history ?? []), historyEntry] } : {}) } : current);
+            }}
+            onSaveReward={saveRewardEntry}
+            onSaveRewardDefinition={saveRewardDefinition}
+            onSaveRewardGoal={saveRewardGoal}
+            onSaveRedemption={saveRedemption}
+            onSaveActivity={saveActivity}
+            parentUnlocked={parentUnlocked}
+            onRequestParentUnlock={requestParentUnlock}
+            onSavePhoto={async (photo) => {
+              await repository.savePhoto(photo);
+              try { localStorage.setItem(`openwall-photo-${photo.householdId}`, photo.dataUrl); } catch { /* IndexedDB remains the source of truth. */ }
+              setSnapshot((current) => current ? { ...current, photos: [photo] } : current);
+            }}
+            onDeletePhoto={async (photo) => {
+              await repository.deletePhoto(photo.id);
+              try { localStorage.removeItem(`openwall-photo-${photo.householdId}`); } catch { /* Ignore unavailable browser storage. */ }
+              setSnapshot((current) => current ? { ...current, photos: [] } : current);
+            }}
           />
         )}
       </main>
@@ -2038,6 +2666,13 @@ export default function App() {
               {confirm.action}
             </button>
           </div>
+        </Dialog>
+      )}
+      {pinPrompt && (
+        <Dialog title={pinSetupMode ? "Create parent PIN" : "Unlock parent mode"} onClose={() => { setPinPrompt(false); setPinValue(""); }}>
+          <p className="confirm-copy">{pinSetupMode ? "Use a 4–6 digit PIN for reward rules, approvals, and protected household changes. It stays only on this device." : "Enter the local parent PIN to unlock protected actions for 15 minutes."}</p>
+          <label>Parent PIN<input autoFocus inputMode="numeric" type="password" maxLength={6} value={pinValue} onChange={(event) => setPinValue(event.target.value.replace(/\D/g, ""))} /></label>
+          <div className="dialog-actions"><span /><button className="secondary-button" onClick={() => { setPinPrompt(false); setPinValue(""); }}>Cancel</button><button className="primary-button" onClick={handlePinSubmit}>{pinSetupMode ? "Save PIN" : "Unlock"}</button></div>
         </Dialog>
       )}
       {tourOpen && (

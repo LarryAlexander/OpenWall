@@ -2,11 +2,15 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
+const isVitest = Boolean(process.env.VITEST);
+
 export default defineConfig({
   base: "./",
   plugins: [
     react(),
-    VitePWA({
+    ...(!isVitest ? [VitePWA({
+      strategies: "generateSW",
+      filename: "sw.js",
       registerType: "prompt",
       includeAssets: ["icon.svg"],
       manifest: {
@@ -37,7 +41,7 @@ export default defineConfig({
         navigateFallback: "index.html",
         globPatterns: ["**/*.{js,css,html,svg,woff2}"],
       },
-    }),
+    })] : []),
   ],
   test: {
     environment: "jsdom",
