@@ -2083,7 +2083,12 @@ fieldset {
 .photo-empty { min-width: 12rem; min-height: 8rem; display: grid; place-items: center; color: var(--ink-muted); }
 .photo-empty svg { width: 2rem; height: 2rem; }
 .photo-widget img { width: 100%; height: 72%; object-fit: cover; border-radius: .6rem; display: block; }
-.history-card { grid-template-columns: minmax(0, 1fr); align-items: stretch; }
+.settings-card.history-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
 .history-card .filter-row { padding-bottom: .85rem; border-bottom: 1px solid var(--line); }
 .history-card .cork-task-list { min-width: 0; }
 .history-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .75rem; align-items: center; padding: .7rem 0; border-bottom: 1px solid var(--line); }
