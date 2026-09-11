@@ -18,6 +18,7 @@ import {
   Minus,
   Monitor,
   Plus,
+  RefreshCw,
   RotateCcw,
   Settings,
   ShieldCheck,
@@ -1853,6 +1854,10 @@ function SettingsView({
   installPrompt,
   installed,
   onInstall,
+  onSync,
+  updateAvailable,
+  onCheckForUpdates,
+  updateInProgress,
   parentUnlocked,
   onRequestParentUnlock,
 }: {
@@ -1874,6 +1879,10 @@ function SettingsView({
   installPrompt: BeforeInstallPromptEvent | null;
   installed: boolean;
   onInstall: () => Promise<void>;
+  onSync: () => Promise<void>;
+  updateAvailable: boolean;
+  onCheckForUpdates: () => Promise<void>;
+  updateInProgress: boolean;
   parentUnlocked: boolean;
   onRequestParentUnlock: () => void;
 }) {
@@ -1946,6 +1955,19 @@ function SettingsView({
           <button className="secondary-button" onClick={exportData}>
             <Download /> Export backup
           </button>
+        </section>
+        <section className="settings-card settings-utility-card">
+          <div className="settings-icon"><RefreshCw /></div>
+          <div>
+            <h2>Keep OpenWall current</h2>
+            <p>Backups move your household safely. Sync refreshes this browser’s local copy; cloud sync is not enabled yet.</p>
+          </div>
+          <div className="settings-action-row">
+            <button className="secondary-button" onClick={onSync} type="button"><RefreshCw /> Sync local data</button>
+            <button className={updateAvailable ? "primary-button" : "secondary-button"} onClick={onCheckForUpdates} disabled={updateInProgress} type="button">
+              <Download /> {updateInProgress ? "Updating…" : updateAvailable ? "Update now" : "Check for updates"}
+            </button>
+          </div>
         </section>
         <section className="settings-card">
           <div className="settings-icon">
@@ -2174,6 +2196,34 @@ export default function App() {
     } catch {
       setUpdateInProgress(false);
       setNotice({ tone: "error", message: "The update could not be installed. Your saved household is safe; try again when online." });
+    }
+  };
+
+  const handleSync = async () => {
+    try {
+      const current = await repository.load();
+      if (current) setSnapshot(current);
+      setNotice({ tone: "success", message: "Local household data is synced with this browser." });
+    } catch {
+      setNotice({ tone: "error", message: "Local sync could not read this browser’s data. Your saved household was not changed." });
+    }
+  };
+
+  const handleCheckForUpdates = async () => {
+    if (update) {
+      await handlePwaUpdate();
+      return;
+    }
+    try {
+      const registration = await window.navigator.serviceWorker?.getRegistration();
+      if (registration) {
+        await registration.update();
+        setNotice({ tone: "success", message: "Update check complete. OpenWall will show an Update now button if a new version is available." });
+      } else {
+        setNotice({ tone: "success", message: "OpenWall checks for updates whenever this app is online." });
+      }
+    } catch {
+      setNotice({ tone: "error", message: "The update check could not complete. Try again when online." });
     }
   };
 
@@ -2719,6 +2769,10 @@ export default function App() {
             installPrompt={installPrompt}
             installed={installed}
             onInstall={handleInstall}
+            onSync={handleSync}
+            updateAvailable={Boolean(update)}
+            onCheckForUpdates={handleCheckForUpdates}
+            updateInProgress={updateInProgress}
             parentUnlocked={parentUnlocked}
             onRequestParentUnlock={requestParentUnlock}
           />

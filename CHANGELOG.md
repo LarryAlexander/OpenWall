@@ -14,6 +14,7 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 - Explicit “Update now” action for detected PWA releases, with an in-progress state and safe fallback reload; household data remains in the local repository across updates.
 - Visible **Add person** control beside the board’s member filters, available after setup and linked to the People editor.
 - Working Clock and Mini calendar board widgets in place of the disabled More Widgets placeholder.
+- Settings now keeps backup, local-data sync, and PWA update controls together, with honest local-only sync messaging and responsive action sizing.
 
 ### Added
 

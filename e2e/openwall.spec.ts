@@ -275,6 +275,18 @@ test("shows settings and requires confirmation before erase", async ({ page }) =
   await expect(page.getByText("The River House")).toBeHidden();
 });
 
+test("keeps backup, sync, and update actions available in Settings", async ({ page }) => {
+  await page.getByRole("button", { name: /explore a sample home/i }).click();
+  await page.getByRole("button", { name: "Settings" }).click();
+
+  await expect(page.getByRole("heading", { name: "Back up your household" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Export backup" })).toBeVisible();
+  await page.getByRole("button", { name: "Sync local data" }).click();
+  await expect(page.getByRole("status")).toContainText(/local household data is synced/i);
+  await page.getByRole("button", { name: "Check for updates" }).click();
+  await expect(page.getByRole("status")).toContainText(/update check complete|checks for updates/i);
+});
+
 test("personalizes the board and keeps appearance on this device", async ({ page }) => {
   await page.getByRole("button", { name: /explore a sample home/i }).click();
   await page.getByRole("button", { name: "Settings" }).click();

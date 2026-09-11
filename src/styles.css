@@ -1405,6 +1405,13 @@ fieldset {
     border-radius var(--motion-duration-short) ease;
 }
 .settings-card > * { min-width: 0; }
+.settings-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .65rem;
+}
+.settings-action-row button { min-width: max-content; }
 .settings-icon {
   width: 48px;
   height: 48px;
@@ -3172,6 +3179,8 @@ fieldset {
     grid-column: 1 / -1;
     width: 100%;
   }
+  .settings-action-row { grid-column: 1 / -1; justify-content: stretch; }
+  .settings-action-row button { flex: 1 1 12rem; }
   .people-all-card > button {
     width: fit-content;
     min-width: 150px;
