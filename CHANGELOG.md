@@ -12,6 +12,7 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 - Version 3 local persistence and backups for reward definitions, goals, redemptions, activities, reactions, and migration-safe task values.
 - Child-profile approval preferences, task-level Star values, reward redemption requests, and shared goal progress are persisted locally.
 - Explicit “Update now” action for detected PWA releases, with an in-progress state and safe fallback reload; household data remains in the local repository across updates.
+- Visible **Add person** control beside the board’s member filters, available after setup and linked to the People editor.
 
 ### Added
 
