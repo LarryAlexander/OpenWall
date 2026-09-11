@@ -52,6 +52,7 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 ### Fixed
 
 - Allowed CI and Pages changelog checks to inspect the complete commit range instead of failing against a shallow checkout.
+- Installed both Chromium and WebKit in CI so the configured wall, phone, and iPad browser projects can all run.
 - Corrected calendar, history, activity, and upcoming labels that could display clock values where formatted dates were expected.
 - Prevented long labels and button text from colliding by enforcing flexible text wrapping, stable icon sizing, and minimum-width containment.
 - Corrected an end-to-end test selector that caused a GitHub Actions run to fail after opening Guide.
