@@ -282,9 +282,9 @@ test("keeps backup, sync, and update actions available in Settings", async ({ pa
   await expect(page.getByRole("heading", { name: "Back up your household" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Export backup" })).toBeVisible();
   await page.getByRole("button", { name: "Sync local data" }).click();
-  await expect(page.getByRole("status")).toContainText(/local household data is synced/i);
+  await expect(page.locator(".notice").filter({ hasText: /local household data is synced/i })).toBeVisible();
   await page.getByRole("button", { name: "Check for updates" }).click();
-  await expect(page.getByRole("status")).toContainText(/update check complete|checks for updates/i);
+  await expect(page.locator(".notice").filter({ hasText: /update check complete|checks for updates/i })).toBeVisible();
 });
 
 test("personalizes the board and keeps appearance on this device", async ({ page }) => {
