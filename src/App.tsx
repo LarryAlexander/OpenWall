@@ -790,6 +790,7 @@ function TodayBoard({
   snapshot,
   filterId,
   onFilter,
+  onManagePeople,
   onEdit,
   onComplete,
   guideState,
@@ -804,6 +805,7 @@ function TodayBoard({
   snapshot: HouseholdSnapshot;
   filterId: string | null;
   onFilter: (id: string | null) => void;
+  onManagePeople: () => void;
   onEdit: (target: EditorTarget) => void;
   onComplete: (task: HouseholdTask) => void;
   guideState: GuideState;
@@ -1208,6 +1210,9 @@ function TodayBoard({
             {member.name}
           </button>
         ))}
+        <button className="board-people-add" onClick={onManagePeople} aria-label="Add household member" title="Add household member">
+          <Plus /> <span>Add person</span>
+        </button>
       </div>
       <MobilePersonalHome
         snapshot={snapshot}
@@ -2540,6 +2545,7 @@ export default function App() {
             snapshot={snapshot}
             filterId={filterId}
             onFilter={setFilterId}
+            onManagePeople={() => setView("people")}
             onEdit={setEditor}
             onComplete={toggleTask}
             guideState={guideState}

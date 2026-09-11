@@ -1548,6 +1548,17 @@ fieldset {
     inset 0 0 0 2px rgba(32, 57, 48, 0.62),
     0 3px 10px rgba(43, 35, 23, 0.1);
 }
+.board-people .board-people-add {
+  flex: 0 0 auto;
+  padding: 3px 12px 3px 9px;
+  background: rgba(255, 255, 255, 0.38);
+  border: 1px dashed rgba(52, 65, 60, 0.45);
+}
+.board-people .board-people-add:hover,
+.board-people .board-people-add:focus-visible {
+  background: var(--surface);
+  border-style: solid;
+}
 .open-corkboard {
   width: min(100%, 1800px);
   height: clamp(540px, calc(100vh - 170px), 940px);
