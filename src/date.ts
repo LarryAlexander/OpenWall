@@ -23,8 +23,36 @@ export function formatDate(date: Date, pattern: string): string {
   if (pattern === "EEEE") {
     return new Intl.DateTimeFormat(undefined, { weekday: "long" }).format(date);
   }
+  if (pattern === "d") {
+    return new Intl.DateTimeFormat(undefined, { day: "numeric" }).format(date);
+  }
   if (pattern === "MMMM d") {
     return new Intl.DateTimeFormat(undefined, { month: "long", day: "numeric" }).format(date);
+  }
+  if (pattern === "MMM d") {
+    return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(date);
+  }
+  if (pattern === "MMMM yyyy") {
+    return new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" }).format(date);
+  }
+  if (pattern === "MMMM d, yyyy") {
+    return new Intl.DateTimeFormat(undefined, { month: "long", day: "numeric", year: "numeric" }).format(date);
+  }
+  if (pattern === "EEEE, MMMM d") {
+    return new Intl.DateTimeFormat(undefined, { weekday: "long", month: "long", day: "numeric" }).format(date);
+  }
+  if (pattern === "MMM d, h:mm a") {
+    return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(date);
+  }
+  if (pattern === "MMM d · h:mm a") {
+    const day = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(date);
+    const clock = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(date);
+    return `${day} · ${clock}`;
+  }
+  if (pattern === "EEE, MMM d · h:mm a") {
+    const day = new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric" }).format(date);
+    const clock = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(date);
+    return `${day} · ${clock}`;
   }
   if (pattern === "a") return date.getHours() < 12 ? "AM" : "PM";
   const time = new Intl.DateTimeFormat(undefined, {

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   CalendarDays,
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   Circle,
   Compass,
@@ -392,8 +393,9 @@ function EventEditor({
   onClose: () => void;
 }) {
   const current = target.value;
-  const start = current ? parseISO(current.startsAt) : new Date();
-  const end = current ? parseISO(current.endsAt) : new Date(Date.now() + 60 * 60 * 1000);
+  const initialDate = target.initialDate ? new Date(`${target.initialDate}T09:00:00`) : new Date();
+  const start = current ? parseISO(current.startsAt) : initialDate;
+  const end = current ? parseISO(current.endsAt) : new Date(initialDate.getTime() + 60 * 60 * 1000);
   const [title, setTitle] = useState(current?.title ?? "");
   const [date, setDate] = useState(format(start, "yyyy-MM-dd"));
   const [startTime, setStartTime] = useState(timeInput(start));
@@ -1581,10 +1583,16 @@ function DashboardView({
   const [rewardCost, setRewardCost] = useState("50");
   const [goalTitle, setGoalTitle] = useState("");
   const [goalTarget, setGoalTarget] = useState("500");
-  const calendarDays = Array.from({ length: 35 }, (_, index) => {
-    const first = new Date(today.getFullYear(), today.getMonth(), 1);
-    first.setDate(first.getDate() - first.getDay() + index);
-    return first;
+  const [calendarMonth, setCalendarMonth] = useState(
+    () => new Date(today.getFullYear(), today.getMonth(), 1),
+  );
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState(() => todayInput());
+  const calendarStart = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
+  calendarStart.setDate(calendarStart.getDate() - calendarStart.getDay());
+  const calendarDays = Array.from({ length: 42 }, (_, index) => {
+    const day = new Date(calendarStart);
+    day.setDate(calendarStart.getDate() + index);
+    return day;
   });
 
   if (view === "people") {
@@ -1593,9 +1601,9 @@ function DashboardView({
         <header><p className="eyebrow">Household</p><h1>People</h1><p>Choose a person to see their part of the plan.</p></header>
         <div className="settings-grid">
           <section className="settings-card"><button className={!filterId ? "primary-button" : "secondary-button"} onClick={() => onFilter(null)}><Users /> Everyone</button></section>
-          <section className="settings-card"><div><h2>Add someone</h2><p>Household members can have their own view and assignments.</p></div><input aria-label="New member name" placeholder="Name" value={newMemberName} onChange={(event) => setNewMemberName(event.target.value)} /><button className="primary-button" onClick={() => { if (!newMemberName.trim()) return; onSaveMember({ id: id(), householdId: snapshot.household.id, name: newMemberName.trim(), colorToken: "sky", symbol: newMemberName.trim().charAt(0).toUpperCase(), sortOrder: snapshot.members.length, role: "other" }); setNewMemberName(""); }}>Add member</button></section>
+          <section className="settings-card add-person-card"><div><h2>Add someone</h2><p>Household members can have their own view and assignments.</p></div><input aria-label="New member name" placeholder="Name" value={newMemberName} onChange={(event) => setNewMemberName(event.target.value)} /><button className="primary-button" onClick={() => { if (!newMemberName.trim()) return; onSaveMember({ id: id(), householdId: snapshot.household.id, name: newMemberName.trim(), colorToken: "sky", symbol: newMemberName.trim().charAt(0).toUpperCase(), sortOrder: snapshot.members.length, role: "other" }); setNewMemberName(""); }}>Add member</button></section>
           {snapshot.members.map((member) => (
-            <section className="settings-card" key={member.id}>
+            <section className="settings-card people-card" key={member.id}>
               <div className={`settings-icon color-${member.colorToken}`}><Avatar member={member} /></div>
               <div><input aria-label={`Name for ${member.name}`} value={member.name} onChange={(event) => onSaveMember({ ...member, name: event.target.value, symbol: event.target.value.trim().charAt(0).toUpperCase() || member.symbol })} /><select aria-label={`Role for ${member.name}`} value={member.role ?? "other"} onChange={(event) => onSaveMember({ ...member, role: event.target.value as HouseholdMember["role"] })}><option value="parent">Parent</option><option value="child">Child</option><option value="teen">Teen</option><option value="grandparent">Grandparent</option><option value="other">Other</option></select><label className="inline-choice"><input type="checkbox" checked={member.rewardApprovalRequired ?? member.role === "child"} onChange={(event) => onSaveMember({ ...member, rewardApprovalRequired: event.target.checked })} /> Approve Stars</label></div>
               <button className={filterId === member.id ? "primary-button" : "secondary-button"} onClick={() => { onFilter(member.id); onView("today"); }}>View plan</button><button className="icon-button" aria-label={`Remove ${member.name}`} onClick={() => onDeleteMember(member)}><Trash2 /></button>
@@ -1670,17 +1678,101 @@ function DashboardView({
   const heading = view === "lists" ? "Lists" : view === "calendar" ? "Calendar" : "Week";
   if (view === "calendar") {
     const upcoming = visibleEvents.filter((item) => parseISO(item.endsAt) >= today).slice(0, 12);
+    const selectedEvents = visibleEvents.filter(
+      (item) =>
+        (item.calendarDate ?? format(parseISO(item.startsAt), "yyyy-MM-dd")) ===
+        selectedCalendarDate,
+    );
+    const changeMonth = (offset: number) => {
+      const next = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + offset, 1);
+      setCalendarMonth(next);
+      setSelectedCalendarDate(format(next, "yyyy-MM-dd"));
+    };
+    const returnToToday = () => {
+      const current = new Date();
+      setCalendarMonth(new Date(current.getFullYear(), current.getMonth(), 1));
+      setSelectedCalendarDate(format(current, "yyyy-MM-dd"));
+    };
     return (
       <div className="settings-view">
-        <header><p className="eyebrow">{selectedMember ? `${selectedMember.name}'s plan` : "Household plan"}</p><h1>Calendar</h1><p>See the month at a glance. Future items appear as soon as they are saved.</p></header>
+        <header className="dashboard-page-header">
+          <div>
+            <p className="eyebrow">{selectedMember ? `${selectedMember.name}'s plan` : "Household plan"}</p>
+            <h1>Calendar</h1>
+            <p>A familiar month view for appointments, school dates, reminders, and family plans.</p>
+          </div>
+          <button className="primary-button page-primary-action" onClick={() => onEdit({ kind: "event", initialDate: selectedCalendarDate })}>
+            <Plus /> Add event
+          </button>
+        </header>
         <section className="settings-card calendar-card">
-          <div className="calendar-weekdays">{["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => <span key={day}>{day}</span>)}</div>
-          <div className="calendar-grid">{calendarDays.map((day) => {
+          <div className="calendar-toolbar">
+            <div>
+              <p className="section-kicker">Month</p>
+              <h2 aria-live="polite">{format(calendarMonth, "MMMM yyyy")}</h2>
+            </div>
+            <div className="calendar-navigation" aria-label="Calendar month navigation">
+              <button className="icon-button" onClick={() => changeMonth(-1)} aria-label="Previous month"><ChevronLeft /></button>
+              <button className="secondary-button" onClick={returnToToday}>Today</button>
+              <button className="icon-button" onClick={() => changeMonth(1)} aria-label="Next month"><ChevronRight /></button>
+            </div>
+          </div>
+          <div className="calendar-weekdays" aria-hidden="true">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => <span key={day}>{day}</span>)}
+          </div>
+          <div className="calendar-grid" role="grid" aria-label={format(calendarMonth, "MMMM yyyy")}>{calendarDays.map((day) => {
             const key = format(day, "yyyy-MM-dd");
             const dayEvents = visibleEvents.filter((item) => (item.calendarDate ?? format(parseISO(item.startsAt), "yyyy-MM-dd")) === key);
-            return <div className={`calendar-day ${day.getMonth() !== today.getMonth() ? "is-muted" : ""}`} key={key}><time>{format(day, "d")}</time>{dayEvents.slice(0, 3).map((item) => <button key={item.id} onClick={() => onEdit({ kind: "event", value: item })}>{item.title}</button>)}</div>;
+            const isOutsideMonth = day.getMonth() !== calendarMonth.getMonth();
+            const isToday = isSameDay(day, today);
+            const isSelected = key === selectedCalendarDate;
+            return (
+              <div
+                className={`calendar-day${isOutsideMonth ? " is-muted" : ""}${isToday ? " is-today" : ""}${isSelected ? " is-selected" : ""}`}
+                key={key}
+                role="gridcell"
+                aria-selected={isSelected}
+              >
+                <button
+                  className="calendar-date-button"
+                  onClick={() => {
+                    setSelectedCalendarDate(key);
+                    if (isOutsideMonth) setCalendarMonth(new Date(day.getFullYear(), day.getMonth(), 1));
+                  }}
+                  aria-label={`${format(day, "MMMM d, yyyy")}${dayEvents.length ? `, ${dayEvents.length} item${dayEvents.length === 1 ? "" : "s"}` : ""}`}
+                >
+                  <time dateTime={key}>{format(day, "d")}</time>
+                </button>
+                <div className="calendar-day-events">
+                  {dayEvents.slice(0, 2).map((item) => (
+                    <button className={`calendar-event kind-${item.kind ?? "event"}`} key={item.id} onClick={() => onEdit({ kind: "event", value: item })} title={item.title}>
+                      <span className="calendar-event-marker" aria-hidden="true" />
+                      <span className="calendar-event-title">{item.title}</span>
+                    </button>
+                  ))}
+                  {dayEvents.length > 2 && <button className="calendar-more" onClick={() => setSelectedCalendarDate(key)}>+{dayEvents.length - 2} more</button>}
+                </div>
+              </div>
+            );
           })}</div>
-          <button className="primary-button" onClick={() => onEdit({ kind: "event" })}><Plus /> Add calendar item</button>
+        </section>
+        <section className="settings-card selected-day-card">
+          <div className="selected-day-heading">
+            <div>
+              <p className="section-kicker">Selected day</p>
+              <h2>{format(new Date(`${selectedCalendarDate}T12:00:00`), "EEEE, MMMM d")}</h2>
+            </div>
+            <button className="secondary-button" onClick={() => onEdit({ kind: "event", initialDate: selectedCalendarDate })}><Plus /> Add here</button>
+          </div>
+          <div className="selected-day-list">
+            {selectedEvents.length ? selectedEvents.map((item) => (
+              <button className="selected-day-event" key={item.id} onClick={() => onEdit({ kind: "event", value: item })}>
+                <span className={`event-kind-dot kind-${item.kind ?? "event"}`} aria-hidden="true" />
+                <span><strong>{item.title}</strong><small>{item.allDay ? "All day" : format(parseISO(item.startsAt), "h:mm a")}</small></span>
+                <ChevronRight />
+              </button>
+            )) : <p className="calendar-empty-day">Nothing planned. Select <strong>Add here</strong> to schedule something.</p>}
+          </div>
         </section>
         <section className="settings-card upcoming-card"><div className="settings-icon"><CalendarDays /></div><div><h2>Upcoming</h2><p>Future plans appear here immediately after saving.</p></div><div className="cork-task-list">{upcoming.length ? upcoming.map((item) => <button className="upcoming-row" key={item.id} onClick={() => onEdit({ kind: "event", value: item })}><span>{item.title}</span><small>{item.allDay ? (item.calendarDate ?? format(parseISO(item.startsAt), "MMM d")) : format(parseISO(item.startsAt), "MMM d · h:mm a")}</small></button>) : <p>No upcoming items yet.</p>}</div></section>
       </div>
@@ -1691,7 +1783,7 @@ function DashboardView({
       <header><p className="eyebrow">{selectedMember ? `${selectedMember.name}'s plan` : "Household plan"}</p><h1>{heading}</h1><p>{view === "lists" ? "Shared tasks and lists for the household." : "Future plans are visible as soon as they are saved."}</p></header>
       <div className="settings-grid">
         <section className="settings-card"><div className="settings-icon"><CalendarDays /></div><div><h2>Schedule</h2><p>{events.length} item{events.length === 1 ? "" : "s"} visible</p></div><button className="secondary-button" onClick={() => onEdit({ kind: "event" })}><Plus /> Add event</button></section>
-        {view === "lists" && <section className="settings-card"><div className="settings-icon"><RotateCcw /></div><div><h2>Repeat a routine</h2><p>Create a chore once and keep it on the family’s rhythm.</p></div><input aria-label="Routine title" placeholder="Morning checklist" value={routineTitle} onChange={(event) => setRoutineTitle(event.target.value)} /><select aria-label="Routine frequency" value={routineFrequency} onChange={(event) => setRoutineFrequency(event.target.value as Routine["frequency"])}><option value="daily">Every day</option><option value="weekly">Every week</option><option value="school-days">School days</option></select>{routineFrequency === "weekly" && <select aria-label="Routine weekday" value={routineWeekday} onChange={(event) => setRoutineWeekday(Number(event.target.value))}>{["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day, index) => <option key={day} value={index}>{day}</option>)}</select>}<select aria-label="Routine assignee" value={routineMemberId} onChange={(event) => setRoutineMemberId(event.target.value)}>{snapshot.members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select><button className="primary-button" onClick={() => { if (!routineTitle.trim()) return; const now = new Date().toISOString(); onSaveRoutine({ id: id(), householdId: snapshot.household.id, title: routineTitle.trim(), assigneeIds: [routineMemberId], frequency: routineFrequency, ...(routineFrequency === "weekly" ? { weekdays: [routineWeekday] } : {}), createdAt: now, updatedAt: now }); setRoutineTitle(""); }}>Add routine</button></section>}
+        {view === "lists" && <section className="settings-card routine-builder-card"><div className="settings-icon"><RotateCcw /></div><div><h2>Repeat a routine</h2><p>Create a chore once and keep it on the family’s rhythm.</p></div><input aria-label="Routine title" placeholder="Morning checklist" value={routineTitle} onChange={(event) => setRoutineTitle(event.target.value)} /><select aria-label="Routine frequency" value={routineFrequency} onChange={(event) => setRoutineFrequency(event.target.value as Routine["frequency"])}><option value="daily">Every day</option><option value="weekly">Every week</option><option value="school-days">School days</option></select>{routineFrequency === "weekly" && <select aria-label="Routine weekday" value={routineWeekday} onChange={(event) => setRoutineWeekday(Number(event.target.value))}>{["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day, index) => <option key={day} value={index}>{day}</option>)}</select>}<select aria-label="Routine assignee" value={routineMemberId} onChange={(event) => setRoutineMemberId(event.target.value)}>{snapshot.members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select><button className="primary-button" onClick={() => { if (!routineTitle.trim()) return; const now = new Date().toISOString(); onSaveRoutine({ id: id(), householdId: snapshot.household.id, title: routineTitle.trim(), assigneeIds: [routineMemberId], frequency: routineFrequency, ...(routineFrequency === "weekly" ? { weekdays: [routineWeekday] } : {}), createdAt: now, updatedAt: now }); setRoutineTitle(""); }}>Add routine</button></section>}
         {view !== "lists" && events.map((item) => <section className="settings-card" key={item.id}><div className="settings-icon"><CalendarDays /></div><div><h2>{item.title}</h2><p>{item.allDay || item.kind === "school-closure" ? "All day" : format(parseISO(item.startsAt), "EEE, MMM d · h:mm a")}{countdownLabel(item) ? ` · ${countdownLabel(item)}` : ""}</p></div><button className="secondary-button" onClick={() => onEdit({ kind: "event", value: item })}>Edit</button></section>)}
         {view === "lists" && visibleTasks.map((task) => <section className="settings-card" key={task.id}><div className="settings-icon"><ListChecks /></div><div><h2>{task.title}</h2><p>{task.completedAt ? "Complete" : task.dueDate ? `Due ${task.dueDate}` : "No due date"}</p></div><button className={task.completedAt ? "secondary-button" : "primary-button"} onClick={() => onComplete(task)}>{task.completedAt ? "Completed" : "Complete"}</button></section>)}
         {view === "lists" && (snapshot.routines ?? []).map((routine) => <section className="settings-card" key={routine.id}><div className="settings-icon"><RotateCcw /></div><div><h2>{routine.title}</h2><p>Repeats {routine.frequency}; assigned to {routine.assigneeIds.map((memberId) => getMember(memberId, snapshot.members)?.name).filter(Boolean).join(", ")}</p></div><button className="secondary-button" onClick={() => onUpdateRoutine({ ...routine, skippedDates: [...(routine.skippedDates ?? []), todayInput()], updatedAt: new Date().toISOString() })}>Skip today</button></section>)}

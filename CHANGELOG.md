@@ -29,6 +29,8 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 
 ### Changed
 
+- Rebuilt Calendar as a traditional six-week month grid with previous/next navigation, a Today shortcut, selected-day agenda, event markers, and date-aware quick add.
+- Reworked complex People, routines, rewards, and upcoming sections so controls stack cleanly instead of bunching on tablet and phone widths.
 - Expanded household navigation so future plans and personal views are discoverable beyond Today.
 - Added a documented `Changelog: none` exception for internal-only changes.
 
@@ -49,6 +51,8 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 
 ### Fixed
 
+- Corrected calendar, history, activity, and upcoming labels that could display clock values where formatted dates were expected.
+- Prevented long labels and button text from colliding by enforcing flexible text wrapping, stable icon sizing, and minimum-width containment.
 - Corrected an end-to-end test selector that caused a GitHub Actions run to fail after opening Guide.
 - Made touch dragging use a larger grab surface and resilient pointer handling in Safari and embedded browsers.
 - Kept the actively manipulated card above overlapping neighbors so drag and resize handles remain reachable.

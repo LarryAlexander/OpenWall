@@ -258,7 +258,7 @@ export interface BoardLayout {
 }
 
 export type EditorTarget =
-  { kind: "event"; value?: ScheduleItem } | { kind: "task"; value?: HouseholdTask };
+  { kind: "event"; value?: ScheduleItem; initialDate?: string } | { kind: "task"; value?: HouseholdTask };
 
 export type TourStatus = "unseen" | "dismissed" | "completed";
 
