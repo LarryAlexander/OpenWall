@@ -13,6 +13,7 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 - Child-profile approval preferences, task-level Star values, reward redemption requests, and shared goal progress are persisted locally.
 - Explicit “Update now” action for detected PWA releases, with an in-progress state and safe fallback reload; household data remains in the local repository across updates.
 - Visible **Add person** control beside the board’s member filters, available after setup and linked to the People editor.
+- Working Clock and Mini calendar board widgets in place of the disabled More Widgets placeholder.
 
 ### Added
 
@@ -55,6 +56,7 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 - Installed both Chromium and WebKit in CI so the configured wall, phone, and iPad browser projects can all run.
 - Corrected calendar, history, activity, and upcoming labels that could display clock values where formatted dates were expected.
 - Prevented long labels and button text from colliding by enforcing flexible text wrapping, stable icon sizing, and minimum-width containment.
+- Corrected overlapping History filters and rows, Rewards form alignment, People button sizing, tablet navigation footprint, broken-photo fallback states, and Rewards “View plan” navigation.
 - Corrected an end-to-end test selector that caused a GitHub Actions run to fail after opening Guide.
 - Made touch dragging use a larger grab surface and resilient pointer handling in Safari and embedded browsers.
 - Kept the actively manipulated card above overlapping neighbors so drag and resize handles remain reachable.

@@ -818,7 +818,11 @@ function TodayBoard({
   onDismissWhatsNew: () => void;
   suppressTips?: boolean;
 }) {
-  const today = new Date();
+  const [today, setToday] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setToday(new Date()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
   const boardRef = useRef<HTMLDivElement>(null);
   const storageKey = `openwall-board-${snapshot.household.id}`;
   const [draggingWidgetId, setDraggingWidgetId] = useState<string | null>(null);
@@ -1028,6 +1032,8 @@ function TodayBoard({
       countdown: { w: 17, h: 23 },
       meal: { w: 22, h: 25, text: "Tonight’s dinner\nAdd a plan" },
       photo: { w: 18, h: 25 },
+      clock: { w: 20, h: 22 },
+      calendar: { w: 28, h: 34 },
     };
     let added: BoardWidget = {
       id: `${type}-${crypto.randomUUID()}`,
@@ -1156,6 +1162,34 @@ function TodayBoard({
           onEdit={setEditingCountdown}
         />
       );
+    if (widget.type === "clock")
+      return (
+        <div className="clock-widget" aria-label={`Current time ${format(today, "h:mm a")}`}>
+          <span>Right now</span>
+          <strong>{format(today, "h:mm a")}</strong>
+          <p>{format(today, "EEEE, MMMM d")}</p>
+        </div>
+      );
+    if (widget.type === "calendar") {
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).getDay();
+      const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+      return (
+        <div className="mini-calendar-widget">
+          <span>This month</span>
+          <strong>{format(today, "MMMM yyyy")}</strong>
+          <div className="mini-calendar-weekdays" aria-hidden="true">
+            {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => <b key={`${day}-${index}`}>{day}</b>)}
+          </div>
+          <div className="mini-calendar-days" aria-label={format(today, "MMMM yyyy")}>
+            {Array.from({ length: firstDay }, (_, index) => <i key={`blank-${index}`} />)}
+            {Array.from({ length: daysInMonth }, (_, index) => {
+              const day = index + 1;
+              return <time className={day === today.getDate() ? "is-today" : ""} key={day}>{day}</time>;
+            })}
+          </div>
+        </div>
+      );
+    }
     let storedPhoto: string | null = null;
     try {
       storedPhoto = localStorage.getItem(`openwall-photo-${snapshot.household.id}`);
@@ -1416,12 +1450,19 @@ function TodayBoard({
                 <strong>Photo</strong>
                 <small>A favorite moment</small>
               </button>
-              <button disabled>
+              <button onClick={() => addWidget("clock")}>
                 <span className="picker-icon">
+                  <Timer />
+                </span>
+                <strong>Clock</strong>
+                <small>Live time and date</small>
+              </button>
+              <button onClick={() => addWidget("calendar")}>
+                <span className="picker-icon sage">
                   <LayoutDashboard />
                 </span>
-                <strong>More widgets</strong>
-                <small>Weather, links & more soon</small>
+                <strong>Mini calendar</strong>
+                <small>A month on the board</small>
               </button>
             </div>
           </section>
@@ -1550,6 +1591,7 @@ function DashboardView({
       return null;
     }
   });
+  const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
   const visibleEvents = snapshot.scheduleItems
     .filter((item) => !filterId || item.memberIds.includes(filterId))
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
@@ -1599,7 +1641,7 @@ function DashboardView({
       <div className="settings-view">
         <header><p className="eyebrow">Household</p><h1>People</h1><p>Choose a person to see their part of the plan.</p></header>
         <div className="settings-grid">
-          <section className="settings-card"><button className={!filterId ? "primary-button" : "secondary-button"} onClick={() => onFilter(null)}><Users /> Everyone</button></section>
+          <section className="settings-card people-all-card"><button className={!filterId ? "primary-button" : "secondary-button"} onClick={() => onFilter(null)}><Users /> Everyone</button></section>
           <section className="settings-card add-person-card"><div><h2>Add someone</h2><p>Household members can have their own view and assignments.</p></div><input aria-label="New member name" placeholder="Name" value={newMemberName} onChange={(event) => setNewMemberName(event.target.value)} /><button className="primary-button" onClick={() => { if (!newMemberName.trim()) return; onSaveMember({ id: id(), householdId: snapshot.household.id, name: newMemberName.trim(), colorToken: "sky", symbol: newMemberName.trim().charAt(0).toUpperCase(), sortOrder: snapshot.members.length, role: "other" }); setNewMemberName(""); }}>Add member</button></section>
           {snapshot.members.map((member) => (
             <section className="settings-card people-card" key={member.id}>
@@ -1635,7 +1677,7 @@ function DashboardView({
       <div className="settings-view">
         <header><p className="eyebrow">Celebrate progress</p><h1>Rewards</h1><p>Stars make progress visible without making the family compete for attention.</p></header>
         <section className="rewards-leaderboard settings-card"><div><p className="section-kicker">This week</p><h2>Personal progress</h2><p>Weekly rankings are optional; lifetime Stars and streaks stay with each person.</p></div><div className="leaderboard-list">{leaderboard.slice(0, 5).map(({ member, stars }, index) => <div className="leaderboard-row" key={member.id}><span>{index + 1}</span><Avatar member={member} small /><strong>{member.name}</strong><b>⭐ {stars}</b></div>)}</div></section>
-        <div className="settings-grid rewards-profile-grid">{snapshot.members.map((member) => { const stars = rewardBalance(member.id, snapshot.tasks, ledger); const streak = currentStreak(member.id, snapshot.tasks); const pending = ledger.filter((entry) => entry.memberId === member.id && entry.status === "pending"); return <section className="settings-card reward-profile-card" key={member.id}><div className={`settings-icon color-${member.colorToken}`}><Avatar member={member} /></div><div><h2>{member.name}</h2><p>⭐ {stars} Stars · 🔥 {streak}-day streak · Level {levelForStars(stars)}</p><small>{snapshot.tasks.filter((task) => task.completedAt && task.assigneeIds.includes(member.id)).length} tasks completed</small>{pending.length > 0 && <p className="reward-pending">{pending.length} awaiting parent approval</p>}</div><div className="button-row"><button className="primary-button" onClick={() => { if (!parentUnlocked) return onRequestParentUnlock(); onSaveReward({ id: id(), householdId: snapshot.household.id, memberId: member.id, points: 1, reason: "Parent-awarded star", sourceType: "manual", status: "approved", createdAt: new Date().toISOString() }); }}>Add star</button><button className="secondary-button" onClick={() => onFilter(member.id)}>View plan</button></div></section>; })}</div>
+        <div className="settings-grid rewards-profile-grid">{snapshot.members.map((member) => { const stars = rewardBalance(member.id, snapshot.tasks, ledger); const streak = currentStreak(member.id, snapshot.tasks); const pending = ledger.filter((entry) => entry.memberId === member.id && entry.status === "pending"); return <section className="settings-card reward-profile-card" key={member.id}><div className={`settings-icon color-${member.colorToken}`}><Avatar member={member} /></div><div><h2>{member.name}</h2><p>⭐ {stars} Stars · 🔥 {streak}-day streak · Level {levelForStars(stars)}</p><small>{snapshot.tasks.filter((task) => task.completedAt && task.assigneeIds.includes(member.id)).length} tasks completed</small>{pending.length > 0 && <p className="reward-pending">{pending.length} awaiting parent approval</p>}</div><div className="button-row"><button className="primary-button" onClick={() => { if (!parentUnlocked) return onRequestParentUnlock(); onSaveReward({ id: id(), householdId: snapshot.household.id, memberId: member.id, points: 1, reason: "Parent-awarded star", sourceType: "manual", status: "approved", createdAt: new Date().toISOString() }); }}>Add star</button><button className="secondary-button" onClick={() => { onFilter(member.id); onView("today"); }}>View plan</button></div></section>; })}</div>
         {ledger.some((entry) => entry.status === "pending") && <section className="settings-card reward-approvals"><div><p className="section-kicker">Parent review</p><h2>Approvals</h2><p>Child completions stay pending until a parent confirms the work.</p></div><div className="approval-list">{ledger.filter((entry) => entry.status === "pending").map((entry) => { const member = snapshot.members.find((candidate) => candidate.id === entry.memberId); return <div className="approval-row" key={entry.id}><span><strong>{member?.name ?? "Member"}</strong> completed a task for {entry.points} ⭐</span><div className="button-row"><button className="primary-button" onClick={() => { if (!parentUnlocked) return onRequestParentUnlock(); onSaveReward({ ...entry, status: "approved", approvedBy: "parent", approvedAt: new Date().toISOString() }); }}>Approve</button><button className="secondary-button" onClick={() => { if (!parentUnlocked) return onRequestParentUnlock(); onSaveReward({ ...entry, status: "denied", approvedBy: "parent", approvedAt: new Date().toISOString() }); }}>Needs more work</button></div></div>; })}</div></section>}
         <section className="settings-card rewards-shop"><div><p className="section-kicker">Rewards shop</p><h2>Give Stars somewhere to go</h2><p>Create rewards the household can request when they have enough Stars.</p></div><div className="reward-definition-list">{definitions.filter((reward) => reward.active).map((reward) => <div className="reward-definition-row" key={reward.id}><span className="reward-icon">{reward.icon}</span><div><strong>{reward.title}</strong><small>{reward.description ?? "A parent-defined household reward"}</small></div><b>{reward.cost} ⭐</b><button className="secondary-button" onClick={() => { const member = snapshot.members.find((candidate) => candidate.id === filterId) ?? snapshot.members[0]; if (!member) return; onSaveRedemption({ id: id(), householdId: snapshot.household.id, rewardId: reward.id, memberId: member.id, cost: reward.cost, status: "requested", requestedAt: new Date().toISOString() }); }}>Request</button></div>)}</div>{(snapshot.rewardRedemptions ?? []).filter((redemption) => redemption.status === "requested").map((redemption) => { const member = snapshot.members.find((candidate) => candidate.id === redemption.memberId); const reward = definitions.find((candidate) => candidate.id === redemption.rewardId); return <div className="redemption-row" key={redemption.id}><span>{member?.name ?? "Member"} requested {reward?.title ?? "a reward"}</span><button className="secondary-button" onClick={() => { if (!parentUnlocked) return onRequestParentUnlock(); onSaveRedemption({ ...redemption, status: "approved", decidedAt: new Date().toISOString(), decidedBy: "parent" }); onSaveReward({ id: id(), householdId: redemption.householdId, memberId: redemption.memberId, points: -redemption.cost, reason: `Redeemed ${reward?.title ?? "reward"}`, sourceType: "redemption", sourceId: redemption.id, status: "approved", createdAt: new Date().toISOString() }); }}>Approve</button></div>; })}<div className="reward-create-form"><input aria-label="Reward title" placeholder="Reward name" value={rewardTitle} onChange={(event) => setRewardTitle(event.target.value)} /><input aria-label="Reward cost" type="number" min="1" value={rewardCost} onChange={(event) => setRewardCost(event.target.value)} /> <button className="primary-button" onClick={saveDefinition}>{parentUnlocked ? "Add reward" : "Unlock to add"}</button></div></section>
         <section className="settings-card shared-goal-card"><div><p className="section-kicker">Shared goals</p><h2>Cooperative first</h2><p>The whole family can contribute toward something everyone wants.</p></div><div className="goal-list">{goals.filter((goal) => goal.active).map((goal) => { const progress = Math.min(goal.targetStars, ledger.filter((entry) => entry.points > 0).reduce((total, entry) => total + entry.points, 0)); return <div className="goal-row" key={goal.id}><div className="goal-row-heading"><strong>{goal.title}</strong><span>{progress} / {goal.targetStars} ⭐</span></div><div className="goal-progress"><span style={{ width: `${Math.round((progress / goal.targetStars) * 100)}%` }} /></div></div>; })}</div><div className="reward-create-form"><input aria-label="Shared goal title" placeholder="Family movie night" value={goalTitle} onChange={(event) => setGoalTitle(event.target.value)} /><input aria-label="Shared goal target" type="number" min="1" value={goalTarget} onChange={(event) => setGoalTarget(event.target.value)} /><button className="primary-button" onClick={saveGoal}>{parentUnlocked ? "Add goal" : "Unlock to add"}</button></div></section>
@@ -1649,20 +1691,21 @@ function DashboardView({
       <div className="settings-view">
         <header><p className="eyebrow">Local memories</p><h1>Photos</h1><p>Choose an image from this device. OpenWall does not upload it.</p></header>
         <section className="settings-card photo-manager">
-          {photoData ? <img src={photoData} alt="Selected household photo" /> : <div className="photo-empty"><Image /><p>No photo selected yet.</p></div>}
-          <label className="secondary-button">{photoData ? "Replace photo" : "Choose a photo"}<input className="sr-only" type="file" accept="image/*" onChange={(event) => {
+          {photoData && !photoLoadFailed ? <img src={photoData} alt="Selected household photo" onError={() => setPhotoLoadFailed(true)} /> : <div className="photo-empty"><Image /><p>{photoLoadFailed ? "This saved photo could not be displayed. Choose it again to repair the card." : "No photo selected yet."}</p></div>}
+          <label className="secondary-button">{photoData ? "Replace photo" : "Choose a photo"}<input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => {
             const file = event.target.files?.[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = () => {
               const value = String(reader.result);
               const photo: PhotoAsset = { id: snapshot.photos?.[0]?.id ?? id(), householdId: snapshot.household.id, name: file.name, mimeType: file.type || "image/*", dataUrl: value, createdAt: snapshot.photos?.[0]?.createdAt ?? new Date().toISOString() };
+              setPhotoLoadFailed(false);
               setPhotoData(value);
               onSavePhoto(photo);
             };
             reader.readAsDataURL(file);
           }} /></label>
-          {photoData && <button className="danger-button" onClick={() => { const photo = snapshot.photos?.[0]; setPhotoData(null); if (photo) onDeletePhoto(photo); }}>Remove photo</button>}
+          {photoData && <button className="danger-button" onClick={() => { const photo = snapshot.photos?.[0]; setPhotoLoadFailed(false); setPhotoData(null); if (photo) onDeletePhoto(photo); }}>Remove photo</button>}
         </section>
       </div>
     );
@@ -1671,7 +1714,7 @@ function DashboardView({
   if (view === "history") {
     const entries = [...(snapshot.history ?? [])].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
     const memberEntries = filterId ? entries.filter((entry) => entry.memberIds.includes(filterId)) : entries;
-    return <div className="settings-view"><header><p className="eyebrow">Household memory</p><h1>History</h1><p>Completed, edited, and restored work stays easy to review.</p></header><section className="settings-card"><div className="filter-row"><label>Person<select aria-label="Filter history by person" value={filterId ?? ""} onChange={(event) => onFilter(event.target.value || null)}><option value="">Everyone</option>{snapshot.members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label></div><div className="cork-task-list">{memberEntries.length ? memberEntries.map((entry) => <div className="history-row" key={entry.id}><CheckCircle2 /><span>{entry.summary}</span><small>{format(parseISO(entry.occurredAt), "MMM d, h:mm a")}</small></div>) : <p>No history for this person yet.</p>}</div></section></div>;
+    return <div className="settings-view"><header><p className="eyebrow">Household memory</p><h1>History</h1><p>Completed, edited, and restored work stays easy to review.</p></header><section className="settings-card history-card"><div className="filter-row"><label>Person<select aria-label="Filter history by person" value={filterId ?? ""} onChange={(event) => onFilter(event.target.value || null)}><option value="">Everyone</option>{snapshot.members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label></div><div className="cork-task-list">{memberEntries.length ? memberEntries.map((entry) => <div className="history-row" key={entry.id}><CheckCircle2 /><span>{entry.summary}</span><small>{format(parseISO(entry.occurredAt), "MMM d, h:mm a")}</small></div>) : <p>No history for this person yet.</p>}</div></section></div>;
   }
 
   const heading = view === "lists" ? "Lists" : view === "calendar" ? "Calendar" : "Week";

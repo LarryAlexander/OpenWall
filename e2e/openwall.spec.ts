@@ -128,6 +128,33 @@ test("keeps every primary view within iPad portrait and landscape widths", async
   }
 });
 
+test("keeps dense dashboard sections separated and unlocks the extra widgets", async ({ page }) => {
+  await page.setViewportSize({ width: 990, height: 994 });
+  await page.getByRole("button", { name: /explore a sample home/i }).click();
+
+  await page.getByRole("button", { name: "History" }).click();
+  const filter = page.locator(".history-card .filter-row");
+  const history = page.locator(".history-card .cork-task-list");
+  const filterBox = await filter.boundingBox();
+  const historyBox = await history.boundingBox();
+  expect(filterBox).not.toBeNull();
+  expect(historyBox).not.toBeNull();
+  expect(historyBox!.y).toBeGreaterThanOrEqual(filterBox!.y + filterBox!.height);
+  await expectNoHorizontalOverflow(page);
+
+  await page.getByRole("button", { name: "Rewards" }).click();
+  await page.getByRole("button", { name: "View plan" }).first().click();
+  await expect(page.getByRole("heading", { name: "Your household, your way." })).toBeVisible();
+
+  await page.getByRole("button", { name: "Add to board" }).click();
+  await page.getByRole("button", { name: /clock live time and date/i }).click();
+  await expect(page.getByText("Right now")).toBeVisible();
+  await page.getByRole("button", { name: "Add to board" }).click();
+  await page.getByRole("button", { name: /mini calendar a month on the board/i }).click();
+  await expect(page.getByText("This month")).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
 test("reorders cards by dragging in the responsive board", async ({ page }) => {
   await page.setViewportSize({ width: 834, height: 1194 });
   await page.getByRole("button", { name: /explore a sample home/i }).click();

@@ -234,7 +234,7 @@ export interface CountdownWidgetConfig {
 }
 
 export type BoardWidgetType =
-  "welcome" | "schedule" | "tasks" | "note" | "countdown" | "meal" | "photo";
+  "welcome" | "schedule" | "tasks" | "note" | "countdown" | "meal" | "photo" | "clock" | "calendar";
 
 export interface BoardWidget {
   id: string;

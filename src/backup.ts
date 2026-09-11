@@ -103,7 +103,7 @@ export const backupSchema = z
     photos: z.array(photoSchema).optional(),
     boardWidgets: z.array(z.object({
       id: z.string().min(1),
-      type: z.enum(["welcome", "schedule", "tasks", "note", "countdown", "meal", "photo"]),
+      type: z.enum(["welcome", "schedule", "tasks", "note", "countdown", "meal", "photo", "clock", "calendar"]),
       x: z.number(), y: z.number(), w: z.number(), h: z.number(), tilt: z.number(),
       text: z.string().optional(), locked: z.boolean().optional(), stackedHeight: z.number().optional(),
       countdown: z.object({ title: z.string(), targetAt: z.string(), displayMode: z.enum(["auto", "days", "digital"]), completionMessage: z.string().optional(), timezone: z.string().optional() }).optional(),
