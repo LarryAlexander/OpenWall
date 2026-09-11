@@ -1280,6 +1280,10 @@ fieldset {
 .toast.update {
   background: #3d536d;
 }
+.toast.update:disabled {
+  opacity: 0.78;
+  cursor: progress;
+}
 .toast svg {
   width: 19px;
 }

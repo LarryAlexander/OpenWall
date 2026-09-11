@@ -11,6 +11,7 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 - Device-only parent PIN unlock for protected reward actions, with 15-minute sessions and no backup/export of the PIN.
 - Version 3 local persistence and backups for reward definitions, goals, redemptions, activities, reactions, and migration-safe task values.
 - Child-profile approval preferences, task-level Star values, reward redemption requests, and shared goal progress are persisted locally.
+- Explicit “Update now” action for detected PWA releases, with an in-progress state and safe fallback reload; household data remains in the local repository across updates.
 
 ### Added
 

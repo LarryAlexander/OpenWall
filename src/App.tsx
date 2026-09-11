@@ -1927,6 +1927,7 @@ export default function App() {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(() => isRunningStandalone());
   const [update, setUpdate] = useState<(() => Promise<void>) | null>(null);
+  const [updateInProgress, setUpdateInProgress] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
   const [guideState, setGuideState] = useState<GuideState>(() => loadGuideState());
   const [tourOpen, setTourOpen] = useState(false);
@@ -2012,6 +2013,8 @@ export default function App() {
   };
 
   const handlePwaUpdate = async () => {
+    if (updateInProgress) return;
+    setUpdateInProgress(true);
     if (typeof window !== "undefined" && window.sessionStorage) {
       try {
         window.sessionStorage.setItem(PWA_POST_UPDATE_KEY, "true");
@@ -2019,8 +2022,19 @@ export default function App() {
         // ignore
       }
     }
-    if (update) {
-      await update();
+    try {
+      if (update) {
+        // Every household mutation is persisted before this action is exposed.
+        // The service-worker helper activates the new shell and reloads the page.
+        await update();
+      } else {
+        const registration = await window.navigator.serviceWorker?.getRegistration();
+        await registration?.update();
+        window.location.reload();
+      }
+    } catch {
+      setUpdateInProgress(false);
+      setNotice({ tone: "error", message: "The update could not be installed. Your saved household is safe; try again when online." });
     }
   };
 
@@ -2517,8 +2531,8 @@ export default function App() {
           />
         )}
         {update && (
-          <button className="toast update" onClick={handlePwaUpdate}>
-            <Download /> A new version is ready. Refresh now.
+          <button className="toast update" onClick={handlePwaUpdate} disabled={updateInProgress}>
+            <Download /> {updateInProgress ? "Updating OpenWall…" : "A new version is ready — Update now"}
           </button>
         )}
         {view === "today" ? (
