@@ -15,6 +15,7 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 - Visible **Add person** control beside the board’s member filters, available after setup and linked to the People editor.
 - Working Clock and Mini calendar board widgets in place of the disabled More Widgets placeholder.
 - Settings now keeps backup, local-data sync, and PWA update controls together, with honest local-only sync messaging and responsive action sizing.
+- Rewards layouts now keep introductions, profiles, approval controls, and shop forms in stable responsive rows instead of squeezing text into narrow columns.
 
 ### Added
 

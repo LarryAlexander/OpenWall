@@ -2258,11 +2258,25 @@ fieldset {
 .shared-goal-card,
 .activity-feed,
 .reward-approvals { display: grid; gap: 1rem; }
-.rewards-leaderboard { grid-template-columns: minmax(0, 1fr) minmax(260px, .8fr); }
+.settings-card.rewards-shop,
+.settings-card.shared-goal-card,
+.settings-card.activity-feed,
+.settings-card.reward-approvals {
+  grid-template-columns: minmax(0, 1fr);
+}
+.settings-card.rewards-leaderboard { grid-template-columns: minmax(0, 1fr) minmax(260px, .8fr); }
 .rewards-shop,
 .shared-goal-card,
 .activity-feed,
 .reward-approvals { grid-template-columns: minmax(0, 1fr); align-items: stretch; }
+.settings-card.reward-profile-card {
+  grid-template-columns: 48px minmax(0, 1fr);
+}
+.settings-card.reward-profile-card > .button-row {
+  grid-column: 1 / -1;
+  width: 100%;
+  justify-content: flex-start;
+}
 .leaderboard-list,
 .reward-definition-list,
 .goal-list,
@@ -3173,6 +3187,9 @@ fieldset {
   }
   .settings-card {
     grid-template-columns: 42px 1fr;
+  }
+  .settings-card.rewards-leaderboard {
+    grid-template-columns: minmax(0, 1fr);
   }
   .settings-card > button,
   .settings-card > .local-pill {
