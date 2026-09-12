@@ -1,5 +1,5 @@
 import { formatDate } from "./date";
-import type { HouseholdSnapshot, MemberColorToken, ScheduleItem } from "./types";
+import type { HouseholdSnapshot, MemberColorToken, ScheduleItem, HouseholdList, HouseholdListItem, HistoryEntry, RewardLedgerEntry, RoutineOccurrence } from "./types";
 
 const makeId = () => crypto.randomUUID();
 
@@ -200,9 +200,12 @@ export function createEightPersonTestHousehold(): HouseholdSnapshot {
     allDay: kind === "school-closure" || kind === "early-dismissal",
     kind: kind as ScheduleItem["kind"],
     calendarDate: at(Number(day), 12).slice(0, 10),
+    ...(title === "Back-to-school night" ? { countdownLinkId: "linked-back-to-school-night" } : {}),
     createdAt,
     updatedAt: createdAt,
   }));
+  const linkedEvent = snapshot.scheduleItems.find((item) => item.title === "Back-to-school night");
+  if (linkedEvent) linkedEvent.countdownLinkId = linkedEvent.id;
   snapshot.tasks = [
     ["Feed Pepper", [ari.id]],
     ["Pack school bags", [theo.id, ari.id, zuri.id, kai.id]],
@@ -238,5 +241,21 @@ export function createEightPersonTestHousehold(): HouseholdSnapshot {
     { id: crypto.randomUUID(), householdId: snapshot.household.id, title: "Family movie night", targetStars: 800, active: true, createdAt, updatedAt: createdAt },
   ];
   snapshot.activities = snapshot.tasks.filter((task) => task.completedAt).map((task) => ({ id: crypto.randomUUID(), householdId: snapshot.household.id, type: "completion" as const, entityId: task.id, memberIds: task.assigneeIds, summary: `${task.title} completed`, createdAt }));
+  snapshot.history = snapshot.tasks.filter((task) => task.completedAt).map((task): HistoryEntry => ({
+    id: crypto.randomUUID(), householdId: snapshot.household.id, entityId: task.id, entityType: "task", action: "completed", occurredAt: task.completedAt!, memberIds: task.assigneeIds, summary: `Completed ${task.title}`,
+  }));
+  const pendingTask = snapshot.tasks.find((task) => task.assigneeIds.includes(theo.id) && !task.completedAt);
+  if (pendingTask) {
+    const pendingReward: RewardLedgerEntry = { id: crypto.randomUUID(), householdId: snapshot.household.id, memberId: theo.id, points: pendingTask.starValue ?? 5, reason: `Completed ${pendingTask.title}`, sourceTaskId: pendingTask.id, sourceType: "task", sourceId: pendingTask.id, status: "pending", createdAt };
+    snapshot.rewards = [pendingReward];
+  }
+  const groceryList: HouseholdList = { id: crypto.randomUUID(), householdId: snapshot.household.id, title: "School week prep", kind: "school", memberIds: [maya.id, jordan.id], createdAt, updatedAt: createdAt };
+  snapshot.lists = [groceryList];
+  snapshot.listItems = [
+    "Sign permission slips",
+    "Pack library books",
+    "Check early-dismissal plan",
+  ].map((title, index): HouseholdListItem => ({ id: crypto.randomUUID(), listId: groceryList.id, householdId: snapshot.household.id, title, sortOrder: index, createdAt, updatedAt: createdAt }));
+  snapshot.routineOccurrences = (snapshot.routines ?? []).map((routine): RoutineOccurrence => ({ id: `occurrence-${routine.id}-${new Date(now).toISOString().slice(0, 10)}`, householdId: snapshot.household.id, routineId: routine.id, occurrenceDate: new Date(now).toISOString().slice(0, 10), status: "pending", assigneeIds: routine.assigneeIds, updatedAt: createdAt }));
   return snapshot;
 }

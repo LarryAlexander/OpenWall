@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { DexieOpenWallRepository } from "./db";
 import { createSampleHousehold } from "./sample";
 import Dexie, { type EntityTable } from "dexie";
-import type { Household, HouseholdMember, HouseholdTask, ScheduleItem, HistoryEntry, RewardLedgerEntry, Routine, PhotoAsset, BoardLayout } from "./types";
+import type { Household, HouseholdMember, HouseholdTask, ScheduleItem, HistoryEntry, RewardLedgerEntry, Routine, PhotoAsset, BoardLayout, HouseholdList, HouseholdListItem, RoutineOccurrence, AttentionState } from "./types";
 
 class TestDatabase extends Dexie {
   households!: EntityTable<Household, "id">;
@@ -14,6 +14,10 @@ class TestDatabase extends Dexie {
   rewards!: EntityTable<RewardLedgerEntry, "id">;
   photos!: EntityTable<PhotoAsset, "id">;
   boardLayouts!: EntityTable<BoardLayout, "id">;
+  lists!: EntityTable<HouseholdList, "id">;
+  listItems!: EntityTable<HouseholdListItem, "id">;
+  routineOccurrences!: EntityTable<RoutineOccurrence, "id">;
+  attentionStates!: EntityTable<AttentionState, "id">;
   constructor() {
     super(`openwall-test-${crypto.randomUUID()}`);
     this.version(1).stores({
@@ -26,6 +30,10 @@ class TestDatabase extends Dexie {
       rewards: "id, householdId, memberId, createdAt",
       photos: "id, householdId, createdAt",
       boardLayouts: "id, householdId, updatedAt",
+      lists: "id, householdId, kind, updatedAt",
+      listItems: "id, householdId, listId, sortOrder, completedAt",
+      routineOccurrences: "id, householdId, routineId, occurrenceDate, status, *assigneeIds",
+      attentionStates: "id, householdId, sourceType, sourceId, updatedAt",
     });
   }
 }
@@ -104,5 +112,23 @@ describe("DexieOpenWallRepository", () => {
     expect(loaded?.photos).toEqual([photo]);
     await repository.deletePhoto(photo.id);
     expect((await repository.load())?.photos).toEqual([]);
+  });
+
+  it("persists lists, routine occurrences, and shared attention state", async () => {
+    const database = new TestDatabase();
+    databases.push(database);
+    const repository = new DexieOpenWallRepository(database as never);
+    const sample = createSampleHousehold();
+    const now = new Date().toISOString();
+    const list: HouseholdList = { id: crypto.randomUUID(), householdId: sample.household.id, title: "Packing", kind: "packing", memberIds: [], createdAt: now, updatedAt: now };
+    const listItem: HouseholdListItem = { id: crypto.randomUUID(), listId: list.id, householdId: sample.household.id, title: "Water bottle", sortOrder: 0, createdAt: now, updatedAt: now };
+    const routine: RoutineOccurrence = { id: crypto.randomUUID(), householdId: sample.household.id, routineId: "routine-1", occurrenceDate: now.slice(0, 10), status: "pending", assigneeIds: [sample.members[0].id], updatedAt: now };
+    const attention: AttentionState = { id: crypto.randomUUID(), householdId: sample.household.id, sourceType: "task", sourceId: sample.tasks[0].id, acknowledgedAt: now, updatedAt: now };
+    await repository.replace({ ...sample, lists: [list], listItems: [listItem], routineOccurrences: [routine], attentionStates: [attention] });
+    const loaded = await repository.load();
+    expect(loaded?.lists).toEqual([list]);
+    expect(loaded?.listItems).toEqual([listItem]);
+    expect(loaded?.routineOccurrences).toEqual([routine]);
+    expect(loaded?.attentionStates).toEqual([attention]);
   });
 });

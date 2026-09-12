@@ -23,20 +23,22 @@ async function expectNoHorizontalOverflow(page: import("@playwright/test").Page)
 test("opens the fictional household and completes a task", async ({ page }) => {
   await page.getByRole("button", { name: /explore a sample home/i }).click();
   await expect(page.getByRole("heading", { name: /today’s rhythm/i })).toBeVisible();
-  const task = page.getByRole("button", { name: /complete feed pepper/i });
+  const task = page.locator(".widget-tasks").getByRole("button", { name: /complete feed pepper/i });
   await task.click();
   await expect(page.getByRole("button", { name: /mark incomplete feed pepper/i })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("button", { name: /mark incomplete feed pepper/i })).toBeVisible();
 });
 
-test("opens the eight-person testing household and exposes the expanded navigation", async ({ page }) => {
+test("opens the eight-person testing household and exposes the expanded navigation", async ({
+  page,
+}) => {
   await page.getByRole("button", { name: /8-person test household/i }).click();
   await expect(page.getByText("The River House · Test Bench")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Today" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Calendar" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Today", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Calendar", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "People" })).toBeVisible();
-  await page.getByRole("button", { name: "Calendar" }).click();
+  await page.getByRole("button", { name: "Calendar", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Calendar" })).toBeVisible();
   await expect(page.getByText("Sun", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "People" }).click();
@@ -54,13 +56,13 @@ test("creates a blank household and adds a task", async ({ page }) => {
   await page.getByRole("button", { name: "Add task" }).click();
   await page.getByLabel("What needs doing?").fill("Test the wall");
   await page.getByRole("button", { name: "Save task" }).click();
-  await expect(page.getByText("Test the wall")).toBeVisible();
+  await expect(page.locator(".widget-tasks").getByText("Test the wall", { exact: true })).toBeVisible();
 });
 
 test("adds a card ready for direct manipulation", async ({ page }) => {
   await page.getByRole("button", { name: /explore a sample home/i }).click();
   await page.getByRole("button", { name: "Add to board" }).click();
-  await page.getByRole("button", { name: /sticky note/i }).click();
+  await page.locator(".widget-picker").getByRole("button", { name: /sticky note/i }).click();
   await expect(page.getByText("Add your note here")).toBeVisible();
 
   const addedNote = page.getByRole("article").filter({ hasText: "Add your note here" });
@@ -103,6 +105,288 @@ test("keeps mobile navigation reachable and remembers offline readiness", async 
   await expect(page.getByText("Offline app files are ready")).toBeVisible();
 });
 
+test("fills the desktop navigation rail to the viewport", async ({ page }) => {
+  await page.getByRole("button", { name: /explore a sample home/i }).click();
+
+  for (const viewport of [
+    { width: 1920, height: 1080 },
+    { width: 1280, height: 800 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const rail = page.locator(".sidebar");
+    const railBox = await rail.boundingBox();
+    expect(railBox).not.toBeNull();
+    expect(railBox!.height).toBeGreaterThanOrEqual(viewport.height - 1);
+    await expect(page.getByRole("button", { name: "Settings", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Guide", exact: true })).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  }
+});
+
+test("keeps the entire Calendar page readable in portrait and compact layouts", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: /explore a sample home/i }).click();
+
+  for (const viewport of [
+    { width: 990, height: 994 },
+    { width: 768, height: 1024 },
+    { width: 834, height: 1194 },
+    { width: 1024, height: 768 },
+    { width: 1280, height: 800 },
+    { width: 1920, height: 1080 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.getByRole("button", { name: "Calendar", exact: true }).click();
+
+    const metrics = await page.locator(".calendar-card").evaluate((card) => {
+      const grid = card.querySelector<HTMLElement>(".calendar-grid");
+      const firstDay = card.querySelector<HTMLElement>(".calendar-day");
+      const toolbar = card.querySelector<HTMLElement>(".calendar-toolbar");
+      if (!grid || !firstDay || !toolbar) return null;
+      const cardBox = card.getBoundingClientRect();
+      const gridBox = grid.getBoundingClientRect();
+      const dayBox = firstDay.getBoundingClientRect();
+      const gridStyle = getComputedStyle(grid);
+      const cardStyle = getComputedStyle(card);
+      return {
+        cardWidth: cardBox.width,
+        gridWidth: gridBox.width,
+        dayWidth: dayBox.width,
+        toolbarWidth: toolbar.getBoundingClientRect().width,
+        cardColumnCount: cardStyle.gridTemplateColumns.trim().split(/\s+/).length,
+        gridColumnCount: gridStyle.gridTemplateColumns.trim().split(/\s+/).length,
+      };
+    });
+
+    const pageSections = await page.locator(".settings-view").evaluate((view) => {
+      const viewBox = view.getBoundingClientRect();
+      const sections = [
+        ...view.querySelectorAll<HTMLElement>(
+          ":scope > .calendar-card, :scope > .selected-day-card, :scope > .upcoming-card",
+        ),
+      ].map((section) => {
+        const box = section.getBoundingClientRect();
+        return { width: box.width, top: box.top, bottom: box.bottom };
+      });
+      return { width: viewBox.width, sections };
+    });
+
+    expect(metrics).not.toBeNull();
+    expect(pageSections.sections, `${viewport.width}px Calendar sections`).toHaveLength(3);
+    const sectionWidth = pageSections.sections[0].width;
+    for (const [index, section] of pageSections.sections.entries()) {
+      expect(section.width, `${viewport.width}px section ${index + 1} width`).toBeCloseTo(
+        sectionWidth,
+        1,
+      );
+      if (index > 0) {
+        expect(
+          section.top,
+          `${viewport.width}px section ${index + 1} separation`,
+        ).toBeGreaterThanOrEqual(pageSections.sections[index - 1].bottom);
+      }
+    }
+    expect(sectionWidth, `${viewport.width}px Calendar content width`).toBeGreaterThan(
+      pageSections.width * 0.8,
+    );
+    expect(metrics!.cardColumnCount, `${viewport.width}px card columns`).toBe(1);
+    expect(metrics!.gridColumnCount, `${viewport.width}px month columns`).toBe(7);
+    expect(metrics!.gridWidth, `${viewport.width}px calendar width`).toBeGreaterThan(
+      metrics!.cardWidth * 0.8,
+    );
+    expect(metrics!.toolbarWidth, `${viewport.width}px toolbar width`).toBeGreaterThan(
+      metrics!.cardWidth * 0.8,
+    );
+    expect(metrics!.dayWidth, `${viewport.width}px day cell width`).toBeGreaterThan(30);
+    await expectNoHorizontalOverflow(page);
+  }
+});
+
+test("keeps the People management page readable on narrow screens", async ({ page }) => {
+  await page.getByRole("button", { name: /explore a sample home/i }).click();
+
+  for (const viewport of [
+    { width: 990, height: 994 },
+    { width: 768, height: 1024 },
+    { width: 834, height: 1194 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.getByRole("button", { name: "People", exact: true }).click();
+
+    const metrics = await page.locator(".settings-view").evaluate((view) => {
+      const addCard = view.querySelector<HTMLElement>(".add-person-card");
+      const addCopy = addCard?.querySelector<HTMLElement>(":scope > div");
+      const addInput = addCard?.querySelector<HTMLElement>(":scope > input");
+      const addButton = addCard?.querySelector<HTMLElement>(":scope > button");
+      const addStyle = addCard ? getComputedStyle(addCard) : null;
+      const cards = [
+        ...view.querySelectorAll<HTMLElement>(":scope > .settings-grid > .settings-card"),
+      ].map((card) => {
+        const box = card.getBoundingClientRect();
+        return { width: box.width, top: box.top, bottom: box.bottom };
+      });
+      return {
+        addColumns: addStyle?.gridTemplateColumns.trim().split(/\s+/).length ?? 0,
+        addCopyWidth: addCopy?.getBoundingClientRect().width ?? 0,
+        addInputWidth: addInput?.getBoundingClientRect().width ?? 0,
+        addButtonWidth: addButton?.getBoundingClientRect().width ?? 0,
+        cards,
+      };
+    });
+
+    expect(metrics.addColumns, `${viewport.width}px add-member columns`).toBe(
+      viewport.width <= 760 ? 1 : 3,
+    );
+    expect(metrics.addCopyWidth, `${viewport.width}px add-member copy`).toBeGreaterThan(120);
+    expect(metrics.addInputWidth, `${viewport.width}px add-member input`).toBeGreaterThan(120);
+    expect(metrics.addButtonWidth, `${viewport.width}px add-member button`).toBeGreaterThan(100);
+    expect(metrics.cards.length, `${viewport.width}px People cards`).toBeGreaterThan(2);
+    await expectNoHorizontalOverflow(page);
+  }
+});
+
+test("keeps Rewards profile actions visibly separated", async ({ page }) => {
+  await page.getByRole("button", { name: /explore a sample home/i }).click();
+
+  for (const viewport of [
+    { width: 990, height: 994 },
+    { width: 768, height: 1024 },
+    { width: 390, height: 844 },
+    { width: 1280, height: 800 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.getByRole("button", { name: "Rewards", exact: true }).click();
+    const row = page.locator(".reward-profile-card .button-row").first();
+    await expect(row).toHaveCSS("display", /flex|grid/);
+    const buttons = row.getByRole("button");
+    const firstBox = await buttons.nth(0).boundingBox();
+    const secondBox = await buttons.nth(1).boundingBox();
+    expect(firstBox).not.toBeNull();
+    expect(secondBox).not.toBeNull();
+    expect(
+      secondBox!.x - (firstBox!.x + firstBox!.width),
+      `${viewport.width}px action gap`,
+    ).toBeGreaterThanOrEqual(8);
+    await expectNoHorizontalOverflow(page);
+  }
+});
+
+test("keeps Today widget text readable across appearance modes", async ({ page }) => {
+  await page.getByRole("button", { name: /explore a sample home/i }).click();
+
+  const readWidgetContrast = async () =>
+    page.evaluate(() => {
+      type Rgba = [number, number, number, number];
+      const parseColor = (value: string): Rgba | null => {
+        const match = value.match(/rgba?\(([^)]+)\)/);
+        if (!match) return null;
+        const parts = match[1].split(",").map((part) => Number.parseFloat(part.trim()));
+        if (parts.length < 3 || parts.some((part) => Number.isNaN(part))) return null;
+        return [parts[0], parts[1], parts[2], parts[3] ?? 1];
+      };
+      const composite = (foreground: Rgba, background: Rgba): Rgba => {
+        const alpha = foreground[3] + background[3] * (1 - foreground[3]);
+        if (alpha === 0) return [0, 0, 0, 0];
+        return [
+          (foreground[0] * foreground[3] + background[0] * background[3] * (1 - foreground[3])) /
+            alpha,
+          (foreground[1] * foreground[3] + background[1] * background[3] * (1 - foreground[3])) /
+            alpha,
+          (foreground[2] * foreground[3] + background[2] * background[3] * (1 - foreground[3])) /
+            alpha,
+          alpha,
+        ];
+      };
+      const luminance = (color: Rgba) =>
+        color.slice(0, 3).reduce((total, channel, index) => {
+          const normalized = channel / 255;
+          return (
+            total +
+            (normalized <= 0.03928 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4) *
+              [0.2126, 0.7152, 0.0722][index]
+          );
+        }, 0);
+      const contrast = (foreground: Rgba | null, background: Rgba | null) => {
+        if (!foreground || !background) return 0;
+        const light = luminance(foreground);
+        const dark = luminance(background);
+        return (Math.max(light, dark) + 0.05) / (Math.min(light, dark) + 0.05);
+      };
+      const colorOf = (selector: string, property: "color" | "backgroundColor") => {
+        const element = document.querySelector(selector);
+        return element ? parseColor(getComputedStyle(element)[property]) : null;
+      };
+      const scheduleBackground = colorOf(".widget-schedule .widget-content", "backgroundColor");
+      const tasksBackground = colorOf(".widget-tasks .widget-content", "backgroundColor");
+      const taskRow = colorOf(".widget-tasks .cork-task-list button", "backgroundColor");
+      const primaryAction = colorOf(".widget-schedule .widget-heading button", "backgroundColor");
+      const memberControl = colorOf(".board-people button", "backgroundColor");
+      const countdownBackground = colorOf(".widget-countdown .widget-content", "backgroundColor");
+      const effectiveTaskRow =
+        taskRow && tasksBackground ? composite(taskRow, tasksBackground) : null;
+      return {
+        scheduleTitle: contrast(
+          colorOf(".widget-schedule .mini-timeline strong", "color"),
+          scheduleBackground,
+        ),
+        scheduleTime: contrast(
+          colorOf(".widget-schedule .mini-timeline time", "color"),
+          scheduleBackground,
+        ),
+        scheduleKicker: contrast(
+          colorOf(".widget-schedule .widget-heading span", "color"),
+          scheduleBackground,
+        ),
+        taskTitle: contrast(
+          colorOf(".widget-tasks .cork-task-list button", "color"),
+          effectiveTaskRow,
+        ),
+        taskKicker: contrast(
+          colorOf(".widget-tasks .widget-heading span", "color"),
+          tasksBackground,
+        ),
+        primaryAction: contrast(
+          colorOf(".widget-schedule .widget-heading button", "color"),
+          primaryAction,
+        ),
+        memberControl: contrast(colorOf(".board-people button", "color"), memberControl),
+        countdownMeta: contrast(
+          colorOf(".widget-countdown .countdown-target-date", "color"),
+          countdownBackground,
+        ),
+      };
+    });
+
+  const assertReadable = async () => {
+    const contrast = await readWidgetContrast();
+    for (const [label, ratio] of Object.entries(contrast)) {
+      expect(ratio, `${label} contrast ratio`).toBeGreaterThanOrEqual(4.5);
+    }
+  };
+
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("radio", { name: /^dark/i }).click();
+  await page.getByRole("button", { name: "Today", exact: true }).click();
+  await assertReadable();
+
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("radio", { name: /^light/i }).click();
+  await page.getByRole("button", { name: "Today", exact: true }).click();
+  await assertReadable();
+
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("radio", { name: /ocean mist/i }).click();
+  await page.getByRole("button", { name: "Today", exact: true }).click();
+  await assertReadable();
+
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("radio", { name: /^dark/i }).click();
+  await page.getByRole("button", { name: "Today", exact: true }).click();
+  await assertReadable();
+});
+
 test("keeps every primary view within iPad portrait and landscape widths", async ({ page }) => {
   const viewports = [
     { width: 768, height: 1024 },
@@ -115,7 +399,7 @@ test("keeps every primary view within iPad portrait and landscape widths", async
 
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
-    await page.getByRole("button", { name: "Today" }).click();
+    await page.getByRole("button", { name: "Today", exact: true }).click();
     await expect(page.getByRole("button", { name: "Settings", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Guide", exact: true })).toBeVisible();
     await expectNoHorizontalOverflow(page);
@@ -225,6 +509,10 @@ test("offers reliable responsive manipulation controls and persists their change
     .toBeLessThan(initialHeight);
   const note = page.locator('[data-widget-id="note"]');
   await note.click();
+  const noteEditor = page.getByRole("dialog", { name: /edit sticky note/i });
+  if (await noteEditor.isVisible()) {
+    await noteEditor.getByRole("button", { name: "Close dialog" }).click();
+  }
   await note.getByRole("button", { name: "Remove note card", exact: true }).click();
   await expect(note).toHaveClass(/is-removing/);
   await expect(page.locator('[data-widget-id="note"]')).toHaveCount(0);
@@ -261,9 +549,12 @@ test("moves and resizes cards on a wall-sized board", async ({ page }) => {
   expect(movedBox!.y).toBeLessThan(initialBox!.y - 20);
 
   await schedule.getByRole("button", { name: "Make schedule card larger", exact: true }).click();
-  const enlargedBox = await schedule.boundingBox();
-  expect(enlargedBox!.width).toBeGreaterThan(movedBox!.width + 30);
-  expect(enlargedBox!.height).toBeGreaterThan(movedBox!.height + 20);
+  await expect
+    .poll(async () => (await schedule.boundingBox())?.width ?? 0)
+    .toBeGreaterThan(movedBox!.width + 30);
+  await expect
+    .poll(async () => (await schedule.boundingBox())?.height ?? 0)
+    .toBeGreaterThan(movedBox!.height + 20);
 });
 
 test("shows settings and requires confirmation before erase", async ({ page }) => {
@@ -282,9 +573,26 @@ test("keeps backup, sync, and update actions available in Settings", async ({ pa
   await expect(page.getByRole("heading", { name: "Back up your household" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Export backup" })).toBeVisible();
   await page.getByRole("button", { name: "Sync local data" }).click();
-  await expect(page.locator(".notice").filter({ hasText: /local household data is synced/i })).toBeVisible();
-  await page.getByRole("button", { name: "Check for updates" }).click();
-  await expect(page.locator(".notice").filter({ hasText: /update check complete|checks for updates/i })).toBeVisible();
+  await expect(
+    page.locator(".notice").filter({ hasText: /local household data is synced/i }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Update app" })).toBeVisible();
+  await page.getByRole("button", { name: "Update app" }).click();
+  await expect(
+    page
+      .locator(".notice")
+      .filter({ hasText: /up to date|active update service|new version is ready/i }),
+  ).toBeVisible();
+  await page.context().setOffline(true);
+  try {
+    await page.waitForFunction(() => !navigator.onLine);
+    await page.getByRole("button", { name: "Update app" }).click();
+    await expect(
+      page.locator(".notice").filter({ hasText: /updates require an internet connection/i }),
+    ).toBeVisible();
+  } finally {
+    await page.context().setOffline(false);
+  }
 });
 
 test("personalizes the board and keeps appearance on this device", async ({ page }) => {

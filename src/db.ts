@@ -16,6 +16,10 @@ import type {
   FamilyReaction,
   Routine,
   BoardLayout,
+  HouseholdList,
+  HouseholdListItem,
+  RoutineOccurrence,
+  AttentionState,
 } from "./types";
 
 class OpenWallDatabase extends Dexie {
@@ -34,6 +38,10 @@ class OpenWallDatabase extends Dexie {
   reactions!: EntityTable<FamilyReaction, "id">;
   photos!: EntityTable<PhotoAsset, "id">;
   boardLayouts!: EntityTable<BoardLayout, "id">;
+  lists!: EntityTable<HouseholdList, "id">;
+  listItems!: EntityTable<HouseholdListItem, "id">;
+  routineOccurrences!: EntityTable<RoutineOccurrence, "id">;
+  attentionStates!: EntityTable<AttentionState, "id">;
 
   constructor(name = "openwall") {
     super(name);
@@ -71,6 +79,27 @@ class OpenWallDatabase extends Dexie {
       photos: "id, householdId, createdAt",
       boardLayouts: "id, householdId, updatedAt",
     });
+    this.version(4).stores({
+      households: "id, updatedAt",
+      members: "id, householdId, sortOrder",
+      scheduleItems: "id, householdId, startsAt, calendarDate, *memberIds",
+      tasks: "id, householdId, dueDate, completedAt, routineId, *assigneeIds",
+      routines: "id, householdId, frequency",
+      routineOccurrences: "id, householdId, routineId, occurrenceDate, status, *assigneeIds",
+      history: "id, householdId, occurredAt, entityType",
+      rewards: "id, householdId, memberId, createdAt, status, sourceId",
+      rewardDefinitions: "id, householdId, active, updatedAt",
+      rewardGoals: "id, householdId, active, updatedAt",
+      rewardChallenges: "id, householdId, active, dueAt",
+      rewardRedemptions: "id, householdId, memberId, status, requestedAt",
+      activities: "id, householdId, createdAt, type",
+      reactions: "id, householdId, activityId, memberId",
+      photos: "id, householdId, createdAt",
+      boardLayouts: "id, householdId, updatedAt",
+      lists: "id, householdId, kind, updatedAt",
+      listItems: "id, householdId, listId, sortOrder, completedAt",
+      attentionStates: "id, householdId, sourceType, sourceId, updatedAt",
+    });
   }
 }
 
@@ -102,6 +131,13 @@ export interface OpenWallRepository {
   savePhoto(photo: PhotoAsset): Promise<void>;
   deletePhoto(id: string): Promise<void>;
   saveBoardLayout(layout: BoardLayout): Promise<void>;
+  saveList(list: HouseholdList): Promise<void>;
+  deleteList(id: string): Promise<void>;
+  saveListItem(item: HouseholdListItem): Promise<void>;
+  deleteListItem(id: string): Promise<void>;
+  saveRoutineOccurrence(occurrence: RoutineOccurrence): Promise<void>;
+  saveAttentionState(state: AttentionState): Promise<void>;
+  deleteAttentionState(id: string): Promise<void>;
   clear(): Promise<void>;
 }
 
@@ -118,7 +154,11 @@ export class DexieOpenWallRepository implements OpenWallRepository {
     const rewardRedemptions = optionalTable<RewardRedemption>(this.database, "rewardRedemptions");
     const activities = optionalTable<ActivityEntry>(this.database, "activities");
     const reactions = optionalTable<FamilyReaction>(this.database, "reactions");
-    const [members, scheduleItems, tasks, routines, history, rewards, definitions, goals, challenges, redemptions, activityEntries, reactionEntries, photos, boardLayout] = await Promise.all([
+    const lists = optionalTable<HouseholdList>(this.database, "lists");
+    const listItems = optionalTable<HouseholdListItem>(this.database, "listItems");
+    const routineOccurrences = optionalTable<RoutineOccurrence>(this.database, "routineOccurrences");
+    const attentionStates = optionalTable<AttentionState>(this.database, "attentionStates");
+    const [members, scheduleItems, tasks, routines, history, rewards, definitions, goals, challenges, redemptions, activityEntries, reactionEntries, photos, boardLayout, householdLists, householdListItems, occurrences, states] = await Promise.all([
       this.database.members.where("householdId").equals(household.id).sortBy("sortOrder"),
       this.database.scheduleItems.where("householdId").equals(household.id).sortBy("startsAt"),
       this.database.tasks.where("householdId").equals(household.id).toArray(),
@@ -133,9 +173,13 @@ export class DexieOpenWallRepository implements OpenWallRepository {
       reactions ? reactions.where("householdId").equals(household.id).toArray() : Promise.resolve([]),
       this.database.photos.where("householdId").equals(household.id).sortBy("createdAt"),
       this.database.boardLayouts.where("householdId").equals(household.id).first(),
+      lists ? lists.where("householdId").equals(household.id).sortBy("updatedAt") : Promise.resolve([]),
+      listItems ? listItems.where("householdId").equals(household.id).sortBy("sortOrder") : Promise.resolve([]),
+      routineOccurrences ? routineOccurrences.where("householdId").equals(household.id).sortBy("occurrenceDate") : Promise.resolve([]),
+      attentionStates ? attentionStates.where("householdId").equals(household.id).sortBy("updatedAt") : Promise.resolve([]),
     ]);
 
-    return { household, members, scheduleItems, tasks, routines, history, rewards, rewardDefinitions: definitions, rewardGoals: goals, rewardChallenges: challenges, rewardRedemptions: redemptions, activities: activityEntries, reactions: reactionEntries, photos, boardWidgets: boardLayout?.widgets };
+    return { household, members, scheduleItems, tasks, routines, history, rewards, rewardDefinitions: definitions, rewardGoals: goals, rewardChallenges: challenges, rewardRedemptions: redemptions, activities: activityEntries, reactions: reactionEntries, photos, boardWidgets: boardLayout?.widgets, lists: householdLists, listItems: householdListItems, routineOccurrences: occurrences, attentionStates: states };
   }
 
   async replace(snapshot: HouseholdSnapshot): Promise<void> {
@@ -145,7 +189,11 @@ export class DexieOpenWallRepository implements OpenWallRepository {
     const rewardRedemptions = optionalTable<RewardRedemption>(this.database, "rewardRedemptions");
     const activities = optionalTable<ActivityEntry>(this.database, "activities");
     const reactions = optionalTable<FamilyReaction>(this.database, "reactions");
-    const transactionTables = ["households", "members", "scheduleItems", "tasks", "routines", "history", "rewards", "rewardDefinitions", "rewardGoals", "rewardChallenges", "rewardRedemptions", "activities", "reactions", "photos", "boardLayouts"]
+    const lists = optionalTable<HouseholdList>(this.database, "lists");
+    const listItems = optionalTable<HouseholdListItem>(this.database, "listItems");
+    const routineOccurrences = optionalTable<RoutineOccurrence>(this.database, "routineOccurrences");
+    const attentionStates = optionalTable<AttentionState>(this.database, "attentionStates");
+    const transactionTables = ["households", "members", "scheduleItems", "tasks", "routines", "routineOccurrences", "history", "rewards", "rewardDefinitions", "rewardGoals", "rewardChallenges", "rewardRedemptions", "activities", "reactions", "photos", "boardLayouts", "lists", "listItems", "attentionStates"]
       .filter((name) => this.database.tables.some((table) => table.name === name));
     await this.database.transaction(
       "rw",
@@ -157,6 +205,7 @@ export class DexieOpenWallRepository implements OpenWallRepository {
           this.database.scheduleItems.clear(),
           this.database.tasks.clear(),
           this.database.routines.clear(),
+          ...(routineOccurrences ? [routineOccurrences.clear()] : []),
           this.database.history.clear(),
           this.database.rewards.clear(),
           ...(rewardDefinitions ? [rewardDefinitions.clear()] : []),
@@ -167,12 +216,16 @@ export class DexieOpenWallRepository implements OpenWallRepository {
           ...(reactions ? [reactions.clear()] : []),
           this.database.photos.clear(),
           this.database.boardLayouts.clear(),
+          ...(lists ? [lists.clear()] : []),
+          ...(listItems ? [listItems.clear()] : []),
+          ...(attentionStates ? [attentionStates.clear()] : []),
         ]);
         await this.database.households.add(snapshot.household);
         await this.database.members.bulkAdd(snapshot.members);
         await this.database.scheduleItems.bulkAdd(snapshot.scheduleItems);
         await this.database.tasks.bulkAdd(snapshot.tasks);
         if (snapshot.routines?.length) await this.database.routines.bulkAdd(snapshot.routines);
+        if (routineOccurrences && snapshot.routineOccurrences?.length) await routineOccurrences.bulkAdd(snapshot.routineOccurrences);
         if (snapshot.history?.length) await this.database.history.bulkAdd(snapshot.history);
         if (snapshot.rewards?.length) await this.database.rewards.bulkAdd(snapshot.rewards);
         if (rewardDefinitions && snapshot.rewardDefinitions?.length) await rewardDefinitions.bulkAdd(snapshot.rewardDefinitions);
@@ -183,6 +236,9 @@ export class DexieOpenWallRepository implements OpenWallRepository {
         if (reactions && snapshot.reactions?.length) await reactions.bulkAdd(snapshot.reactions);
         if (snapshot.photos?.length) await this.database.photos.bulkAdd(snapshot.photos);
         if (snapshot.boardWidgets) await this.database.boardLayouts.put({ id: snapshot.household.id, householdId: snapshot.household.id, widgets: snapshot.boardWidgets, updatedAt: snapshot.household.updatedAt });
+        if (lists && snapshot.lists?.length) await lists.bulkAdd(snapshot.lists);
+        if (listItems && snapshot.listItems?.length) await listItems.bulkAdd(snapshot.listItems);
+        if (attentionStates && snapshot.attentionStates?.length) await attentionStates.bulkAdd(snapshot.attentionStates);
       },
     );
   }
@@ -276,6 +332,43 @@ export class DexieOpenWallRepository implements OpenWallRepository {
 
   saveBoardLayout(layout: BoardLayout) {
     return this.database.boardLayouts.put(layout).then(() => undefined);
+  }
+
+  saveList(list: HouseholdList) {
+    const table = optionalTable<HouseholdList>(this.database, "lists");
+    return table ? table.put(list).then(() => undefined) : Promise.resolve();
+  }
+
+  async deleteList(id: string) {
+    const table = optionalTable<HouseholdList>(this.database, "lists");
+    const items = optionalTable<HouseholdListItem>(this.database, "listItems");
+    if (table) await table.delete(id);
+    if (items) await items.filter((item) => item.listId === id).delete();
+  }
+
+  saveListItem(item: HouseholdListItem) {
+    const table = optionalTable<HouseholdListItem>(this.database, "listItems");
+    return table ? table.put(item).then(() => undefined) : Promise.resolve();
+  }
+
+  deleteListItem(id: string) {
+    const table = optionalTable<HouseholdListItem>(this.database, "listItems");
+    return table ? table.delete(id).then(() => undefined) : Promise.resolve();
+  }
+
+  saveRoutineOccurrence(occurrence: RoutineOccurrence) {
+    const table = optionalTable<RoutineOccurrence>(this.database, "routineOccurrences");
+    return table ? table.put(occurrence).then(() => undefined) : Promise.resolve();
+  }
+
+  saveAttentionState(state: AttentionState) {
+    const table = optionalTable<AttentionState>(this.database, "attentionStates");
+    return table ? table.put(state).then(() => undefined) : Promise.resolve();
+  }
+
+  deleteAttentionState(id: string) {
+    const table = optionalTable<AttentionState>(this.database, "attentionStates");
+    return table ? table.delete(id).then(() => undefined) : Promise.resolve();
   }
 
   async clear() {

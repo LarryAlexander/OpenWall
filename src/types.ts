@@ -17,7 +17,7 @@ export interface HouseholdMember {
   colorToken: MemberColorToken;
   symbol: string;
   sortOrder: number;
-  role?: "parent" | "child" | "teen" | "grandparent" | "other";
+  role?: "parent" | "admin" | "child" | "teen" | "grandparent" | "other";
   rewardApprovalRequired?: boolean;
 }
 
@@ -75,7 +75,83 @@ export interface Routine {
   frequency: "daily" | "weekly" | "school-days";
   weekdays?: number[];
   skippedDates?: string[];
+  exceptions?: RoutineException[];
   createdAt: string;
+  updatedAt: string;
+}
+
+export interface RoutineException {
+  date: string;
+  action: "skip" | "reschedule";
+  rescheduledDate?: string;
+  note?: string;
+}
+
+export interface RoutineOccurrence {
+  id: string;
+  householdId: string;
+  routineId: string;
+  occurrenceDate: string;
+  status: "pending" | "completed" | "skipped" | "missed";
+  assigneeIds: string[];
+  completedAt?: string;
+  updatedAt: string;
+}
+
+export type HouseholdListKind = "grocery" | "packing" | "school" | "chores" | "custom";
+
+export interface HouseholdList {
+  id: string;
+  householdId: string;
+  title: string;
+  kind: HouseholdListKind;
+  memberIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HouseholdListItem {
+  id: string;
+  listId: string;
+  householdId: string;
+  title: string;
+  completedAt?: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AttentionSourceType = "task" | "routine" | "schedule" | "reward" | "system";
+export type AttentionReason =
+  | "overdue"
+  | "due-today"
+  | "approval-needed"
+  | "missed"
+  | "storage-warning"
+  | "update-ready";
+
+export interface AttentionItem {
+  id: string;
+  householdId: string;
+  sourceType: AttentionSourceType;
+  sourceId: string;
+  occurrenceKey?: string;
+  memberIds: string[];
+  title: string;
+  summary: string;
+  reason: AttentionReason;
+  priority: number;
+  dueAt?: string;
+}
+
+export interface AttentionState {
+  id: string;
+  householdId: string;
+  sourceType: AttentionSourceType;
+  sourceId: string;
+  occurrenceKey?: string;
+  acknowledgedAt?: string;
+  snoozedUntil?: string;
   updatedAt: string;
 }
 
@@ -84,7 +160,7 @@ export interface HistoryEntry {
   householdId: string;
   entityId: string;
   entityType: "schedule" | "task" | "routine" | "reward" | "photo";
-  action: "completed" | "skipped" | "missed" | "edited" | "deleted" | "restored";
+  action: "completed" | "skipped" | "missed" | "edited" | "deleted" | "restored" | "approved" | "denied" | "awarded" | "reversed";
   occurredAt: string;
   memberIds: string[];
   summary: string;
@@ -186,7 +262,7 @@ export interface PhotoAsset {
 
 export interface OpenWallBackup {
   format: "openwall-backup";
-  schemaVersion: 3;
+  schemaVersion: 4;
   exportedAt: string;
   household: Household;
   members: HouseholdMember[];
@@ -203,6 +279,10 @@ export interface OpenWallBackup {
   reactions?: FamilyReaction[];
   photos?: PhotoAsset[];
   boardWidgets?: BoardWidget[];
+  lists?: HouseholdList[];
+  listItems?: HouseholdListItem[];
+  routineOccurrences?: RoutineOccurrence[];
+  attentionStates?: AttentionState[];
 }
 
 export interface HouseholdSnapshot {
@@ -221,6 +301,10 @@ export interface HouseholdSnapshot {
   reactions?: FamilyReaction[];
   photos?: PhotoAsset[];
   boardWidgets?: BoardWidget[];
+  lists?: HouseholdList[];
+  listItems?: HouseholdListItem[];
+  routineOccurrences?: RoutineOccurrence[];
+  attentionStates?: AttentionState[];
 }
 
 export type CountdownDisplayMode = "auto" | "days" | "digital";

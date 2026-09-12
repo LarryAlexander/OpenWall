@@ -23,6 +23,7 @@ import {
 interface InstallEducationProps {
   online: boolean;
   offlineReady: boolean;
+  id?: string;
   compact?: boolean;
   installPrompt?: BeforeInstallPromptEvent | null;
   installed?: boolean;
@@ -32,6 +33,7 @@ interface InstallEducationProps {
 export function InstallEducation({
   online,
   offlineReady,
+  id,
   compact = false,
   installPrompt = null,
   installed = isRunningStandalone(),
@@ -87,7 +89,7 @@ export function InstallEducation({
   }
 
   return (
-    <section className="install-section" aria-labelledby="install-section-title">
+    <section id={id} className="install-section" aria-labelledby="install-section-title">
       <header className="install-section-header">
         <div className="install-heading-icon">
           <Smartphone aria-hidden="true" />

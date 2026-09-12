@@ -28,5 +28,8 @@ describe("OpenWall backup", () => {
     expect(restored.scheduleItems.some((item) => item.kind === "school-closure")).toBe(true);
     expect(restored.routines).toHaveLength(2);
     expect(restored.boardWidgets).toEqual(boardWidgets);
+    expect(restored.lists).toHaveLength(1);
+    expect(restored.routineOccurrences).toHaveLength(2);
+    expect(restored.history?.length).toBeGreaterThan(0);
   });
 });

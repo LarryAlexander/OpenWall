@@ -16,7 +16,7 @@ const memberSchema = z.object({
   colorToken: z.enum(MEMBER_COLORS),
   symbol: z.string().min(1),
   sortOrder: z.number().int().nonnegative(),
-  role: z.enum(["parent", "child", "teen", "grandparent", "other"]).optional(),
+  role: z.enum(["parent", "admin", "child", "teen", "grandparent", "other"]).optional(),
   rewardApprovalRequired: z.boolean().optional(),
 });
 
@@ -59,12 +59,32 @@ const taskSchema = z.object({
 const routineSchema = z.object({
   id: z.string().min(1), householdId: z.string().min(1), title: z.string().min(1),
   assigneeIds: z.array(z.string()), frequency: z.enum(["daily", "weekly", "school-days"]),
-  weekdays: z.array(z.number().int().min(0).max(6)).optional(), skippedDates: z.array(z.string()).optional(), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime(),
+  weekdays: z.array(z.number().int().min(0).max(6)).optional(), skippedDates: z.array(z.string()).optional(),
+  exceptions: z.array(z.object({ date: z.string(), action: z.enum(["skip", "reschedule"]), rescheduledDate: z.string().optional(), note: z.string().optional() })).optional(),
+  createdAt: z.iso.datetime(), updatedAt: z.iso.datetime(),
+});
+const routineOccurrenceSchema = z.object({
+  id: z.string().min(1), householdId: z.string().min(1), routineId: z.string().min(1), occurrenceDate: z.string(),
+  status: z.enum(["pending", "completed", "skipped", "missed"]), assigneeIds: z.array(z.string()),
+  completedAt: z.iso.datetime().optional(), updatedAt: z.iso.datetime(),
+});
+const listSchema = z.object({
+  id: z.string().min(1), householdId: z.string().min(1), title: z.string().min(1),
+  kind: z.enum(["grocery", "packing", "school", "chores", "custom"]), memberIds: z.array(z.string()),
+  createdAt: z.iso.datetime(), updatedAt: z.iso.datetime(),
+});
+const listItemSchema = z.object({
+  id: z.string().min(1), listId: z.string().min(1), householdId: z.string().min(1), title: z.string().min(1),
+  completedAt: z.iso.datetime().optional(), sortOrder: z.number().int().nonnegative(), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime(),
+});
+const attentionStateSchema = z.object({
+  id: z.string().min(1), householdId: z.string().min(1), sourceType: z.enum(["task", "routine", "schedule", "reward", "system"]), sourceId: z.string().min(1),
+  occurrenceKey: z.string().optional(), acknowledgedAt: z.iso.datetime().optional(), snoozedUntil: z.iso.datetime().optional(), updatedAt: z.iso.datetime(),
 });
 const historySchema = z.object({
   id: z.string().min(1), householdId: z.string().min(1), entityId: z.string().min(1),
   entityType: z.enum(["schedule", "task", "routine", "reward", "photo"]),
-  action: z.enum(["completed", "skipped", "missed", "edited", "deleted", "restored"]),
+  action: z.enum(["completed", "skipped", "missed", "edited", "deleted", "restored", "approved", "denied", "awarded", "reversed"]),
   occurredAt: z.iso.datetime(), memberIds: z.array(z.string()), summary: z.string(),
 });
 const rewardSchema = z.object({
@@ -85,7 +105,7 @@ const photoSchema = z.object({
 export const backupSchema = z
   .object({
     format: z.literal("openwall-backup"),
-  schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+    schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
     exportedAt: z.iso.datetime(),
     household: householdSchema,
     members: z.array(memberSchema),
@@ -101,6 +121,10 @@ export const backupSchema = z
     activities: z.array(activitySchema).optional(),
     reactions: z.array(reactionSchema).optional(),
     photos: z.array(photoSchema).optional(),
+    lists: z.array(listSchema).optional(),
+    listItems: z.array(listItemSchema).optional(),
+    routineOccurrences: z.array(routineOccurrenceSchema).optional(),
+    attentionStates: z.array(attentionStateSchema).optional(),
     boardWidgets: z.array(z.object({
       id: z.string().min(1),
       type: z.enum(["welcome", "schedule", "tasks", "note", "countdown", "meal", "photo", "clock", "calendar"]),
@@ -120,6 +144,7 @@ export const backupSchema = z
       ...(data.rewards ?? []),
       ...(data.rewardDefinitions ?? []), ...(data.rewardGoals ?? []), ...(data.rewardChallenges ?? []), ...(data.rewardRedemptions ?? []), ...(data.activities ?? []), ...(data.reactions ?? []),
       ...(data.photos ?? []),
+      ...(data.lists ?? []), ...(data.listItems ?? []), ...(data.routineOccurrences ?? []), ...(data.attentionStates ?? []),
     ].some(
       (item) => item.householdId !== householdId,
     );
@@ -129,7 +154,7 @@ export const backupSchema = z
 export function serializeBackup(snapshot: HouseholdSnapshot, boardWidgets?: HouseholdSnapshot["boardWidgets"]): string {
   const backup: OpenWallBackup = {
     format: "openwall-backup",
-    schemaVersion: 3,
+    schemaVersion: 4,
     exportedAt: new Date().toISOString(),
     ...snapshot,
     ...(boardWidgets ? { boardWidgets } : {}),
@@ -155,5 +180,9 @@ export function parseBackup(raw: string): HouseholdSnapshot {
     ...(parsed.reactions ? { reactions: parsed.reactions } : {}),
     ...(parsed.photos ? { photos: parsed.photos } : {}),
     ...(parsed.boardWidgets ? { boardWidgets: parsed.boardWidgets } : {}),
+    ...(parsed.lists ? { lists: parsed.lists } : {}),
+    ...(parsed.listItems ? { listItems: parsed.listItems } : {}),
+    ...(parsed.routineOccurrences ? { routineOccurrences: parsed.routineOccurrences } : {}),
+    ...(parsed.attentionStates ? { attentionStates: parsed.attentionStates } : {}),
   };
 }

@@ -25,6 +25,19 @@ export function rewardBalance(memberId: string, tasks: HouseholdTask[], ledger: 
   return Math.max(0, completed + adjustments);
 }
 
+export function weeklyRewardBalance(memberId: string, tasks: HouseholdTask[], ledger: RewardLedgerEntry[], now = new Date()) {
+  const cutoff = new Date(now);
+  cutoff.setDate(cutoff.getDate() - 7);
+  const cutoffTime = cutoff.getTime();
+  const taskAwards = ledger
+    .filter((entry) => entry.memberId === memberId && entry.points > 0 && entry.status !== "denied" && new Date(entry.createdAt).getTime() >= cutoffTime)
+    .reduce((total, entry) => total + entry.points, 0);
+  const completed = tasks
+    .filter((task) => task.completedAt && task.assigneeIds.includes(memberId) && new Date(task.completedAt).getTime() >= cutoffTime && !ledger.some((entry) => entry.sourceTaskId === task.id && entry.memberId === memberId && entry.status !== "denied"))
+    .reduce((total, task) => total + taskStarValue(task), 0);
+  return completed + taskAwards;
+}
+
 export function hasAwardForTask(taskId: string, memberId: string, ledger: RewardLedgerEntry[]) {
   return ledger.some((entry) => entry.sourceTaskId === taskId && entry.memberId === memberId && entry.status !== "denied");
 }

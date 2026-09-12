@@ -175,7 +175,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
       "Choose Yellow Sticky for a visual reminder or Tasks for the shared household task list.",
       "Pick Meal for a simple dinner card, Photo to choose a device-local image, or Countdown to add an editable live clock.",
       "New cards appear selected and ready to position, resize, lock, or remove.",
-      "Schedule and task content is editable today; local photos can be selected from Photos. Notes and meals remain simple board cards for now.",
+      "Schedule, task, note, and meal content is editable from the board. Photos remain local to this device and can be replaced from Photos.",
     ],
     action: {
       type: "tour-step",
@@ -278,6 +278,67 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
     ],
   },
 
+  {
+    id: "family-inbox-and-badges",
+    title: "Using the Family Inbox and member badges",
+    summary:
+      "See the few household items that need a response, then acknowledge, snooze, complete, or open the source record.",
+    categoryId: "household-members-and-filters",
+    keywords: ["inbox", "notifications", "attention", "badge", "overdue", "approval", "snooze", "acknowledge"],
+    steps: [
+      "The Family Inbox sits above the corkboard and shows up to three prioritized items; future ordinary events stay in Upcoming.",
+      "A badge on a member chip or People card counts actionable work assigned to that person. Parents can see the household total.",
+      "Select an item to open its source view, Complete to finish a task, the checkmark to acknowledge it, or the timer to snooze it for one hour.",
+      "Inbox state is household-shared and included in backups, while Guide tips and release notices remain device-specific.",
+    ],
+    action: { type: "navigate", label: "Open Family Inbox", targetView: "today" },
+  },
+  {
+    id: "calendar-and-upcoming",
+    title: "Planning ahead with Calendar, Week, and Upcoming",
+    summary:
+      "Future events, school closures, reminders, and linked countdowns remain visible as soon as they are saved.",
+    categoryId: "getting-started",
+    keywords: ["calendar", "week", "month", "upcoming", "school closed", "closure", "reminder", "future", "countdown"],
+    steps: [
+      "Use Calendar for a traditional month grid, select a date for its agenda, and use Week for a time-based seven-day view.",
+      "Choose School closed, Holiday, Early dismissal, Personal day, or Reminder when adding an item so it receives the right label and marker.",
+      "Upcoming plans appear on Today immediately after saving; the saved message confirms the item is on this device.",
+      "Turn on Show countdown to link one live countdown to the schedule item. Editing the event updates the countdown automatically.",
+    ],
+    action: { type: "navigate", label: "Open Calendar", targetView: "settings" },
+  },
+  {
+    id: "lists-and-routines",
+    title: "Lists and repeatable routines",
+    summary:
+      "Create a list once and schedule recurring chores or school-day routines without retyping them every morning.",
+    categoryId: "getting-started",
+    keywords: ["lists", "grocery", "packing", "school", "chores", "routine", "repeat", "daily", "weekly"],
+    steps: [
+      "Open Lists to create a grocery, packing, school, chores, or custom list, then add and check off individual items.",
+      "Use Repeat a routine for daily, weekly, or school-day work and choose its member assignment.",
+      "Routines are templates; each date gets its own occurrence so a missed or skipped day can be reviewed later.",
+      "Everything is saved locally and carried in the household backup, including list items and routine occurrence state.",
+    ],
+    action: { type: "navigate", label: "Open Lists", targetView: "settings" },
+  },
+  {
+    id: "stars-and-rewards",
+    title: "Stars, approvals, and shared rewards",
+    summary:
+      "Make progress visible with transparent Stars, parent review, and cooperative family goals.",
+    categoryId: "getting-started",
+    keywords: ["stars", "rewards", "points", "approval", "parent", "shop", "goal", "streak"],
+    steps: [
+      "Each person has a local Stars balance, streak, level, and completed-task total. Task values can be set by the household owner.",
+      "Child completions can wait for parent approval; the pending state explains why a balance has not changed yet.",
+      "Parents can award or correct Stars with a reason, create shop rewards, and approve or decline redemption requests.",
+      "Shared goals keep cooperation primary. Rewards are optional, local, and visible in History so corrections are understandable.",
+    ],
+    action: { type: "navigate", label: "Open Rewards", targetView: "settings" },
+  },
+
   // 5. Offline use and installation
   {
     id: "offline-resilience",
@@ -298,7 +359,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
     steps: [
       "While online, GitHub Pages delivers OpenWall’s static app files and the browser checks for published updates. OpenWall has no application account or household-data server.",
       "After loading OpenWall once online, the application shell is cached on this device when the browser supports the required service-worker features.",
-      "Household records are saved in IndexedDB; board layout and countdown settings are kept locally in this browser and included in version 2 backups when available.",
+      "Household records, lists, routines, notifications, photos, and board layout are saved in IndexedDB and included in the current versioned backup format.",
       "If your home internet drops after the app has been cached, a gentle banner confirms that saved local features remain available.",
       "You can continue adding, editing, and checking off tasks normally while offline.",
       "Each browser keeps a separate household. Changes made on one phone do not automatically sync to another device in this version.",
@@ -331,6 +392,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
     ],
     steps: [
       "Open Settings and find Install & connectivity for instructions tailored to the device you are using.",
+      "Use the always-visible Update app button in Settings to check for a newer OpenWall build. A waiting build installs immediately; otherwise, select the same button again after it reports ready.",
       "On iPhone or iPad, open OpenWall in Safari, tap Share, choose Add to Home Screen, then tap Add.",
       "On Android, open OpenWall in Chrome and choose Install app or Add to Home screen from the browser menu. When Chrome offers a direct install button, OpenWall displays it in Settings.",
       "On Chrome or Edge for computers and wall displays, use the address-bar install icon or the browser’s Install OpenWall menu item.",
@@ -548,6 +610,10 @@ export const SUGGESTED_SEARCH_TOPICS: string[] = [
   "Backups",
   "Offline use",
   "Member filters",
+  "Family Inbox",
+  "Calendar and Upcoming",
+  "Lists and routines",
+  "Stars and rewards",
   "Sticky notes",
   "Troubleshooting",
 ];

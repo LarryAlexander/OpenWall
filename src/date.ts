@@ -23,6 +23,9 @@ export function formatDate(date: Date, pattern: string): string {
   if (pattern === "EEEE") {
     return new Intl.DateTimeFormat(undefined, { weekday: "long" }).format(date);
   }
+  if (pattern === "EEE") {
+    return new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(date);
+  }
   if (pattern === "d") {
     return new Intl.DateTimeFormat(undefined, { day: "numeric" }).format(date);
   }

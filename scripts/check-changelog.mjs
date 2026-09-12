@@ -28,7 +28,7 @@ if (!base || base === "0000000000000000000000000000000000000000") {
 }
 
 const changed = run("git", ["diff", "--name-only", base, head]).split("\n").filter(Boolean);
-const messages = run("git", ["log", "-1", "--format=%B", head]);
+const messages = run("git", ["log", "--format=%B", `${base}..${head}`]);
 const changelogChanged = changed.includes("CHANGELOG.md");
 const bypassed = /changelog:\s*none/i.test(messages);
 const userVisible = changed.some((file) => {

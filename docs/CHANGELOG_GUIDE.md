@@ -39,6 +39,33 @@ Good: `- Added touch-friendly card reordering on tablet and phone layouts.`
 
 Avoid: `- Updated App.tsx and styles.css.`
 
+## Quick entries for this release
+
+Use the smallest outcome-focused sentence that tells a household what changed:
+
+```md
+### Added
+- Added Family Inbox badges for overdue work, approvals, and missed routines; acknowledgement and snooze state is included in backups.
+
+### Changed
+- Future schedule items now remain visible in Upcoming, Week, and Calendar after saving.
+
+### Fixed
+- Corrected the mobile list and rewards layouts so long names and actions no longer collide.
+
+### Security
+- Kept parent PIN material device-only and excluded it from every backup.
+
+### Breaking
+- Backup schema v4 adds lists and attention state; older releases may need an export/import migration note.
+```
+
+When a change spans several modules, mention each user-facing outcome once and
+call out the storage boundary. A new view, fixture, recurrence behavior, or
+backup field belongs under **Added**; a correction to an existing flow belongs
+under **Fixed**; a behavior that changes how existing records are interpreted
+belongs under **Changed**.
+
 ## Major, minor, and small changes
 
 OpenWall uses Semantic Versioning: `MAJOR.MINOR.PATCH`.
@@ -75,3 +102,10 @@ Never rewrite an already published release entry to hide a mistake. Add a correc
 CI and the Pages deployment run `node scripts/check-changelog.mjs`. If app code, public assets, dependencies, deployment configuration, or user-facing documentation changes, the check requires a new bullet under **Unreleased**. Run it locally with `--base <commit> --head <commit>` before pushing.
 
 For a test-only or internal refactor, add the commit trailer `Changelog: none` or use the pull-request label `changelog: none`. This is an explicit exception, not a replacement for documenting behavior changes. The check never writes release notes automatically.
+
+### Monitor troubleshooting
+
+- Run `pnpm check:changelog -- --base <commit> --head <commit>` against the exact range that will be pushed.
+- If the monitor says an Unreleased bullet is missing, confirm the changed file is not accidentally outside `CHANGELOG.md` or that the bullet is not nested under a heading with a typo.
+- If versions do not align, update `package.json`, the first `RELEASE_NOTES` entry in `src/guideData.ts`, and the latest published `CHANGELOG.md` heading together when cutting a release. Do not bump them for an Unreleased-only change.
+- Use `Changelog: none` only on a genuinely internal commit. The monitor never invents release text, changes household data, or publishes a release for you.
