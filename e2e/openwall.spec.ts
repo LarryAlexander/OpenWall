@@ -586,6 +586,18 @@ test("offers reliable responsive manipulation controls and persists their change
   await expect(page.locator('[data-widget-id="note"]')).toHaveCount(0);
 });
 
+test("can remove a sticky note from its editor", async ({ page }) => {
+  await page.getByRole("button", { name: /explore a sample home/i }).click();
+
+  const note = page.locator('[data-widget-id="note"]');
+  await note.getByRole("button", { name: "Edit sticky note", exact: true }).click();
+  await page.getByRole("button", { name: "Remove note", exact: true }).click();
+
+  await expect(page.getByRole("dialog", { name: /remove sticky note/i })).toBeVisible();
+  await page.getByRole("button", { name: "Remove card", exact: true }).click();
+  await expect(page.locator('[data-widget-id="note"]')).toHaveCount(0);
+});
+
 test("moves and resizes cards on a wall-sized board", async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.getByRole("button", { name: /explore a sample home/i }).click();

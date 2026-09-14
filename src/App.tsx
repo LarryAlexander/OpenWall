@@ -784,14 +784,17 @@ const defaultBoardWidgets: BoardWidget[] = [
 function TextWidgetEditor({
   widget,
   onSave,
+  onDelete,
   onClose,
 }: {
   widget: BoardWidget;
   onSave: (widget: BoardWidget) => void;
+  onDelete?: (widget: BoardWidget) => void;
   onClose: () => void;
 }) {
   const [text, setText] = useState(widget.text ?? "");
-  return <Dialog title={widget.type === "meal" ? "Edit meal" : "Edit sticky note"} onClose={onClose}><form className="editor-form" onSubmit={(event) => { event.preventDefault(); onSave({ ...widget, text: text.trim() || "Add a note" }); }}><label>{widget.type === "meal" ? "Tonight’s plan" : "Note text"}<textarea autoFocus value={text} onChange={(event) => setText(event.target.value)} placeholder={widget.type === "meal" ? "Taco night\n6:30 PM" : "Remember to..."} /></label><div className="dialog-actions"><span /><button className="secondary-button" type="button" onClick={onClose}>Cancel</button><button className="primary-button" type="submit">Save card</button></div></form></Dialog>;
+  const isNote = widget.type === "note";
+  return <Dialog title={isNote ? "Edit sticky note" : "Edit meal"} onClose={onClose}><form className="editor-form" onSubmit={(event) => { event.preventDefault(); onSave({ ...widget, text: text.trim() || "Add a note" }); }}><label>{isNote ? "Note text" : "Tonight’s plan"}<textarea autoFocus value={text} onChange={(event) => setText(event.target.value)} placeholder={isNote ? "Remember to..." : "Taco night\n6:30 PM"} /></label><div className="dialog-actions"><span />{onDelete && <button className="danger-button" type="button" onClick={() => onDelete(widget)}><Trash2 aria-hidden="true" /> Remove {isNote ? "note" : "meal"}</button>}<button className="secondary-button" type="button" onClick={onClose}>Cancel</button><button className="primary-button" type="submit">Save card</button></div></form></Dialog>;
 }
 
 function MobilePersonalHome({
@@ -1080,6 +1083,7 @@ function TodayBoard({
   const [cardJustAdded, setCardJustAdded] = useState(false);
   const [editingCountdown, setEditingCountdown] = useState<BoardWidget | null>(null);
   const [editingTextWidget, setEditingTextWidget] = useState<BoardWidget | null>(null);
+  const [pendingTextWidgetRemoval, setPendingTextWidgetRemoval] = useState<BoardWidget | null>(null);
   const [widgets, setWidgets] = useState<BoardWidget[]>(() => {
     const source = snapshot.boardWidgets?.length ? snapshot.boardWidgets : defaultBoardWidgets;
     return source.map((w) => {
@@ -1796,8 +1800,32 @@ function TodayBoard({
         <TextWidgetEditor
           widget={editingTextWidget}
           onSave={(updated) => { updateWidget(updated.id, updated); setEditingTextWidget(null); }}
+          onDelete={(widget) => { setEditingTextWidget(null); setPendingTextWidgetRemoval(widget); }}
           onClose={() => setEditingTextWidget(null)}
         />
+      )}
+      {pendingTextWidgetRemoval && (
+        <Dialog
+          title={`Remove ${pendingTextWidgetRemoval.type === "note" ? "sticky note" : "meal"}?`}
+          onClose={() => setPendingTextWidgetRemoval(null)}
+        >
+          <p className="confirm-copy">This card will be torn from the board. You can add a new one later from Add to board.</p>
+          <div className="dialog-actions">
+            <span />
+            <button className="secondary-button" type="button" onClick={() => setPendingTextWidgetRemoval(null)}>Keep card</button>
+            <button
+              className="danger-button solid"
+              type="button"
+              onClick={() => {
+                const widget = pendingTextWidgetRemoval;
+                setPendingTextWidgetRemoval(null);
+                removeWidget(widget.id);
+              }}
+            >
+              Remove card
+            </button>
+          </div>
+        </Dialog>
       )}
     </div>
   );

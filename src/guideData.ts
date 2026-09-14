@@ -175,7 +175,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
       "Choose Yellow Sticky for a visual reminder or Tasks for the shared household task list.",
       "Pick Meal for a simple dinner card, Photo to choose a device-local image, or Countdown to add an editable live clock.",
       "New cards appear selected and ready to position, resize, lock, or remove.",
-      "Schedule, task, note, and meal content is editable from the board. Photos remain local to this device and can be replaced from Photos.",
+      "Schedule, task, note, and meal content is editable from the board. Open a sticky note or meal card and choose Remove when you no longer need it; OpenWall asks for confirmation before tearing it off. Photos remain local to this device and can be replaced from Photos.",
     ],
     action: {
       type: "tour-step",

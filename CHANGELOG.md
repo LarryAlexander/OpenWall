@@ -42,6 +42,7 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 - Today now keeps future plans visible in a compact Upcoming rail, while Inbox stays reserved for actionable work.
 - Board layout and photos use the repository as their source of truth so normal reloads, backups, and app updates preserve the same household state.
 - Weather refreshes are user-initiated and network-dependent; the card keeps its last successful local reading available when the device is offline.
+- Sticky notes and meal cards can now be removed from their editor with confirmation while preserving the board's tear-off animation.
 
 - Rebuilt Calendar as a traditional six-week month grid with previous/next navigation, a Today shortcut, selected-day agenda, event markers, and date-aware quick add.
 - Reworked complex People, routines, rewards, and upcoming sections so controls stack cleanly instead of bunching on tablet and phone widths.
