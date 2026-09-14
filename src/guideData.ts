@@ -183,6 +183,26 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
       stepIndex: 1,
     },
   },
+  {
+    id: "weather-card",
+    title: "Keeping a local weather card",
+    summary:
+      "Add a five-day forecast for a chosen place, with a clear offline fallback and no household data upload.",
+    categoryId: "cards-and-countdowns",
+    keywords: ["weather", "forecast", "temperature", "location", "rain", "offline", "units"],
+    steps: [
+      "Open '+ Add to board' and choose Weather, then select Set location on the new card.",
+      "Search for a city or allow a one-time device location lookup. OpenWall stores the coordinates on this device only.",
+      "Choose Fahrenheit or Celsius and save to see current conditions plus the next five days.",
+      "Use the refresh button when you are online. If the saved reading is older, the card labels it as possibly out of date instead of hiding it.",
+      "Forecast data comes from Open-Meteo; the card links to the provider and keeps the last successful reading available offline.",
+    ],
+    action: {
+      type: "navigate",
+      label: "Open Today board",
+      targetView: "today",
+    },
+  },
 
   // 3. Arranging the board
   {

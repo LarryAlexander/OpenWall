@@ -66,6 +66,23 @@ backup field belongs under **Added**; a correction to an existing flow belongs
 under **Fixed**; a behavior that changes how existing records are interpreted
 belongs under **Changed**.
 
+For network-assisted but local-first modules such as Weather, record both the
+visible capability and its data boundary. Identify the provider or source,
+whether a user action or permission is required, what is cached locally, and
+what is never sent. For example:
+
+```md
+### Added
+- Added a Weather card with city search, device-location opt-in, five-day forecast, and cached offline readings.
+
+### Changed
+- Weather refresh is user-initiated; the selected coordinates and last reading remain in the local backup and household data is not uploaded.
+```
+
+If a provider, model, or hosted endpoint changes, include that provenance in
+the same release entry and update the bundled Guide article or third-party
+notices when the terms, attribution, or privacy boundary require it.
+
 ## Major, minor, and small changes
 
 OpenWall uses Semantic Versioning: `MAJOR.MINOR.PATCH`.

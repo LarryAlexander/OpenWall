@@ -23,6 +23,8 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 - Added content-driven vertical spacing between Rewards containers and removed fixed navigation heights so cards and navigation can grow naturally with their content.
 - Kept the People “Everyone” filter button sized to its label across responsive card breakpoints.
 - Added a persistent Settings “Update app” action with clear checking, ready, current, offline, and failure status messaging while preserving local household data.
+- Added a Weather board module with explicit city or device-location setup, Fahrenheit/Celsius units, current conditions, a five-day forecast, cached readings, and stale-data messaging.
+- Documented the weather data source and privacy boundary in Guide; selected coordinates and cached readings stay in the local board backup and are never uploaded by OpenWall.
 
 - An eight-person fictional testing household available from onboarding and Settings for responsive and member-filter testing.
 - Working Week, Calendar, Lists, History, People, Rewards, and Photos destinations replacing the previous disabled placeholders.
@@ -39,6 +41,7 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 
 - Today now keeps future plans visible in a compact Upcoming rail, while Inbox stays reserved for actionable work.
 - Board layout and photos use the repository as their source of truth so normal reloads, backups, and app updates preserve the same household state.
+- Weather refreshes are user-initiated and network-dependent; the card keeps its last successful local reading available when the device is offline.
 
 - Rebuilt Calendar as a traditional six-week month grid with previous/next navigation, a Today shortcut, selected-day agenda, event markers, and date-aware quick add.
 - Reworked complex People, routines, rewards, and upcoming sections so controls stack cleanly instead of bunching on tablet and phone widths.

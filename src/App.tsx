@@ -5,6 +5,7 @@ import {
   BellRing,
   CheckCircle2,
   Check,
+  CloudSun,
   ChevronLeft,
   ChevronRight,
   Circle,
@@ -18,6 +19,8 @@ import {
   ListPlus,
   ListChecks,
   Lock,
+  LocateFixed,
+  MapPin,
   Menu,
   Minus,
   Monitor,
@@ -26,6 +29,7 @@ import {
   RotateCcw,
   Settings,
   ShieldCheck,
+  Search,
   StickyNote,
   Sun,
   Timer,
@@ -83,6 +87,15 @@ import {
   type BeforeInstallPromptEvent,
 } from "./install";
 import { WhatsNewNotice } from "./WhatsNewNotice";
+import {
+  fetchWeather,
+  formatWeatherTemperature,
+  isWeatherSnapshotStale,
+  locationLabel,
+  searchWeatherPlaces,
+  weatherCondition,
+  type WeatherPlace,
+} from "./weather";
 import type {
   AppearancePreferences,
   BoardWidget,
@@ -107,6 +120,7 @@ import type {
   HouseholdListItem,
   RoutineOccurrence,
   ScheduleItem,
+  WeatherWidgetConfig,
 } from "./types";
 import { currentStreak, levelForStars, rewardBalance, weeklyRewardBalance, taskStarValue, requiresRewardApproval, hasAwardForTask } from "./rewards";
 import { hasParentPin, isParentUnlocked, setParentPin, unlockParentMode } from "./pin";
@@ -842,6 +856,176 @@ function MobilePersonalHome({
   );
 }
 
+function WeatherWidget({
+  widget,
+  onSave,
+}: {
+  widget: BoardWidget;
+  onSave: (widget: BoardWidget) => void;
+}) {
+  const config: WeatherWidgetConfig = widget.weather ?? { units: "fahrenheit" };
+  const snapshot = config.snapshot;
+  const [locationQuery, setLocationQuery] = useState(config.location?.name ?? "");
+  const [places, setPlaces] = useState<WeatherPlace[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [loading, setLoading] = useState(false);
+  // Keep the card glanceable on first add. Location setup is explicit through
+  // the card action so a newly added weather module never interrupts the wall.
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [units, setUnits] = useState(config.units ?? "fahrenheit");
+  const [error, setError] = useState("");
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    setLocationQuery(config.location?.name ?? "");
+    setUnits(config.units ?? "fahrenheit");
+  }, [config.location?.name, config.units]);
+
+  const saveLocation = async (place: WeatherPlace) => {
+    setLoading(true);
+    setError("");
+    const location = {
+      name: place.name,
+      latitude: place.latitude,
+      longitude: place.longitude,
+      ...(place.timezone ? { timezone: place.timezone } : {}),
+      ...(place.country ? { country: place.country } : {}),
+      ...(place.admin1 ? { admin1: place.admin1 } : {}),
+    } satisfies NonNullable<WeatherWidgetConfig["location"]>;
+    try {
+      const nextSnapshot = await fetchWeather(location, units);
+      onSave({ ...widget, weather: { ...config, location, units, snapshot: nextSnapshot } });
+      setEditorOpen(false);
+      setPlaces([]);
+    } catch {
+      setError("Weather could not be loaded. Check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refresh = async () => {
+    if (!config.location) {
+      setEditorOpen(true);
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const nextSnapshot = await fetchWeather(config.location, units);
+      onSave({ ...widget, weather: { ...config, units, snapshot: nextSnapshot } });
+    } catch {
+      setError("Couldn’t refresh weather. The last saved forecast is still available.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const search = async () => {
+    if (locationQuery.trim().length < 2) {
+      setError("Enter at least two letters to search for a place.");
+      return;
+    }
+    setSearching(true);
+    setError("");
+    try {
+      const matches = await searchWeatherPlaces(locationQuery);
+      setPlaces(matches);
+      if (!matches.length) setError("No places matched that search. Try a nearby city.");
+    } catch {
+      setError("Location search needs an internet connection. You can try again or use device location.");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const useDeviceLocation = () => {
+    if (!navigator.geolocation) {
+      setError("This browser does not provide device location. Search for a city instead.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        void saveLocation({
+          name: "Current location",
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      () => {
+        setLoading(false);
+        setError("Location permission was not granted. Search for a city instead.");
+      },
+      { enableHighAccuracy: false, maximumAge: 15 * 60_000, timeout: 10_000 },
+    );
+  };
+
+  const currentCondition = snapshot ? weatherCondition(snapshot.current.weatherCode) : null;
+  const stale = isWeatherSnapshotStale(snapshot, now);
+  const unitLabel = snapshot?.units === "celsius" || units === "celsius" ? "km/h" : "mph";
+
+  return (
+    <div className="weather-widget-content">
+      <header className="weather-widget-heading">
+        <div>
+          <span className="weather-kicker"><CloudSun aria-hidden="true" /> Weather</span>
+          <h2>{snapshot ? locationLabel(snapshot.location) : "Plan around the weather"}</h2>
+        </div>
+        <div className="weather-widget-actions">
+          <button className="icon-button" type="button" onClick={() => setEditorOpen(true)} aria-label="Change weather location"><MapPin /></button>
+          <button className="icon-button" type="button" onClick={() => void refresh()} disabled={loading} aria-label="Refresh weather"><RefreshCw className={loading ? "weather-refresh-icon" : ""} /></button>
+        </div>
+      </header>
+      {!snapshot ? (
+        <div className="weather-empty-state">
+          <span className="weather-empty-icon" aria-hidden="true">🌤️</span>
+          <strong>{config.location ? "Forecast not loaded yet" : "Add a place to see the forecast"}</strong>
+          <p>Weather is fetched only when you ask and the last successful reading is saved on this device.</p>
+          <button className="primary-button" type="button" onClick={() => setEditorOpen(true)}>Set location</button>
+        </div>
+      ) : (
+        <>
+          <div className="weather-current" aria-label={`${currentCondition?.label ?? "Current conditions"}, ${formatWeatherTemperature(snapshot.current.temperature, snapshot.units)}`}>
+            <span className="weather-condition-icon" aria-hidden="true">{currentCondition?.icon}</span>
+            <div><strong>{formatWeatherTemperature(snapshot.current.temperature, snapshot.units)}</strong><span>{currentCondition?.label}</span></div>
+            <dl><div><dt>Feels like</dt><dd>{formatWeatherTemperature(snapshot.current.apparentTemperature, snapshot.units)}</dd></div><div><dt>Wind</dt><dd>{Math.round(snapshot.current.windSpeed)} {unitLabel}</dd></div></dl>
+          </div>
+          <div className="weather-forecast" aria-label="Five day forecast">
+            {snapshot.daily.slice(0, 5).map((day) => {
+              const condition = weatherCondition(day.weatherCode);
+              return <div className="weather-day" key={day.date}><time dateTime={day.date}>{format(parseISO(day.date), "EEE")}</time><span aria-label={condition.label}>{condition.icon}</span><strong>{formatWeatherTemperature(day.temperatureMax, snapshot.units)}</strong><small>{formatWeatherTemperature(day.temperatureMin, snapshot.units)}</small>{day.precipitationProbability > 0 && <em>{Math.round(day.precipitationProbability)}%</em>}</div>;
+            })}
+          </div>
+          <footer className={`weather-status ${stale ? "is-stale" : ""}`}>
+            <span>{stale ? "Last reading may be out of date" : "Updated just now"}</span>
+            <small>{stale ? <>Refresh when you are online · <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Forecast via Open-Meteo</a> · {snapshot.timezone}</> : <><a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Forecast via Open-Meteo</a> · {snapshot.timezone}</>}</small>
+          </footer>
+        </>
+      )}
+      {error && <p className="weather-error" role="alert">{error}</p>}
+      {editorOpen && (
+        <Dialog title="Weather location" onClose={() => setEditorOpen(false)}>
+          <form className="editor-form weather-location-form" onSubmit={(event) => { event.preventDefault(); void search(); }}>
+            <p>Choose a city or allow a one-time device location lookup. OpenWall stores the selected coordinates and forecast on this device; it does not upload household data.</p>
+            <label>Search for a city or town<input autoFocus value={locationQuery} onChange={(event) => setLocationQuery(event.target.value)} placeholder="Baltimore" /></label>
+            <div className="weather-location-actions"><button className="primary-button" type="submit" disabled={searching}>{searching ? "Searching…" : <><Search aria-hidden="true" /> Search places</>}</button><button className="secondary-button" type="button" onClick={useDeviceLocation} disabled={loading}><LocateFixed /> Use my location</button></div>
+            {places.length > 0 && <div className="weather-place-results" aria-label="Place search results">{places.map((place) => <button type="button" key={`${place.latitude}-${place.longitude}`} onClick={() => void saveLocation(place)}><MapPin /><span><strong>{place.name}</strong><small>{[place.admin1, place.country].filter(Boolean).join(", ")}</small></span><ChevronRight /></button>)}</div>}
+            <label>Temperature units<select value={units} onChange={(event) => setUnits(event.target.value as WeatherWidgetConfig["units"])}><option value="fahrenheit">Fahrenheit (°F)</option><option value="celsius">Celsius (°C)</option></select></label>
+            <div className="dialog-actions"><span /><button className="secondary-button" type="button" onClick={() => setEditorOpen(false)}>Cancel</button></div>
+          </form>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
 function TodayBoard({
   snapshot,
   filterId,
@@ -1126,6 +1310,7 @@ function TodayBoard({
       photo: { w: 18, h: 25 },
       clock: { w: 20, h: 22 },
       calendar: { w: 28, h: 34 },
+      weather: { w: 24, h: 30 },
     };
     let added: BoardWidget = {
       id: `${type}-${crypto.randomUUID()}`,
@@ -1281,6 +1466,8 @@ function TodayBoard({
         </div>
       );
     }
+    if (widget.type === "weather")
+      return <WeatherWidget widget={widget} onSave={(next) => updateWidget(next.id, next)} />;
     const storedPhoto = snapshot.photos?.[0]?.dataUrl ?? null;
     return (
       <button className="photo-widget" onClick={() => onView("photos")} aria-label="Open Photos to manage the household photo">
@@ -1576,6 +1763,13 @@ function TodayBoard({
                 </span>
                 <strong>Mini calendar</strong>
                 <small>A month on the board</small>
+              </button>
+              <button onClick={() => addWidget("weather")}>
+                <span className="picker-icon sky">
+                  <CloudSun />
+                </span>
+                <strong>Weather</strong>
+                <small>Plan around the forecast</small>
               </button>
             </div>
           </section>

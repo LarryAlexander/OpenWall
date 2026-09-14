@@ -18,6 +18,7 @@ OpenWall is not intended to copy Skylight's branding or interface. It addresses 
 - a fictional eight-person test household for responsive and member-filter testing
 - a wall-friendly freeform corkboard with movable, resizable, lockable cards
 - schedule, task, note, meal, countdown, welcome, and photo-style cards
+- an optional Weather card with city or device-location setup, current conditions, and a five-day forecast
 - direct corkboard manipulation with grab-to-move cards, contextual controls, locking, and an add-card tray
 - an optional 60-second orientation tour with remembered dismissal
 - searchable offline Help and a bundled What’s New history
@@ -32,6 +33,11 @@ OpenWall is not intended to copy Skylight's branding or interface. It addresses 
 - verified offline reload after the first successful visit
 - responsive layouts for a wall display, tablet, and phone
 - export and import of household data as a local backup
+
+The Weather card uses the Open-Meteo forecast and geocoding endpoints only after
+you choose a place or grant a one-time location lookup. The selected location
+and last successful reading stay in this browser's local board data; OpenWall
+does not upload household records or require a weather API key.
 
 Calendar-provider sync, multi-device sync, meals, groceries, photos, AI, and home automation are roadmap features—not MVP claims.
 

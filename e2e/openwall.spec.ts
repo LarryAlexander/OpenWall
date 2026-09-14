@@ -78,6 +78,72 @@ test("adds a card ready for direct manipulation", async ({ page }) => {
   await expect(page.getByText("Add your note here")).toBeVisible();
 });
 
+test("adds and persists a configured local weather card", async ({ page }) => {
+  await page.route("https://geocoding-api.open-meteo.com/**", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        results: [
+          {
+            id: 4347778,
+            name: "Baltimore",
+            latitude: 39.2904,
+            longitude: -76.6122,
+            timezone: "America/New_York",
+            country: "United States",
+            admin1: "Maryland",
+          },
+        ],
+      }),
+    }),
+  );
+  await page.route("https://api.open-meteo.com/**", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        timezone: "America/New_York",
+        current: {
+          time: "2026-09-14T12:00",
+          temperature_2m: 72,
+          apparent_temperature: 71,
+          weather_code: 1,
+          is_day: 1,
+          wind_speed_10m: 4,
+        },
+        daily: {
+          time: ["2026-09-14", "2026-09-15", "2026-09-16", "2026-09-17", "2026-09-18"],
+          weather_code: [1, 2, 3, 61, 80],
+          temperature_2m_max: [76, 78, 74, 70, 73],
+          temperature_2m_min: [61, 63, 60, 58, 59],
+          precipitation_probability_max: [10, 20, 35, 70, 45],
+        },
+      }),
+    }),
+  );
+
+  await page.getByRole("button", { name: /explore a sample home/i }).click();
+  await page.getByRole("button", { name: "Add to board" }).click();
+  await page.locator(".widget-picker").getByRole("button", { name: /weather plan around the forecast/i }).click();
+
+  const weather = page.locator('[data-widget-id^="weather-"]');
+  await expect(weather.getByRole("button", { name: "Set location" })).toBeVisible();
+  await weather.getByRole("button", { name: "Set location" }).click();
+  const dialog = page.getByRole("dialog", { name: "Weather location" });
+  await dialog.getByLabel("Search for a city or town").fill("Baltimore");
+  await dialog.getByRole("button", { name: /search places/i }).click();
+  await dialog.getByRole("button", { name: /Baltimore.*Maryland/i }).click();
+
+  await expect(weather.getByRole("heading", { name: "Baltimore" })).toBeVisible();
+  await expect(weather.getByText("72°F", { exact: true })).toBeVisible();
+  await expect(weather.getByText("Forecast via Open-Meteo", { exact: false })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await page.reload();
+  const savedWeather = page.locator('[data-widget-id^="weather-"]');
+  await expect(savedWeather.getByRole("heading", { name: "Baltimore" })).toBeVisible();
+  await expect(savedWeather.getByText("72°F", { exact: true })).toBeVisible();
+});
+
 test("keeps mobile navigation reachable and remembers offline readiness", async ({ page }) => {
   await page.getByRole("button", { name: /explore a sample home/i }).click();
   await page.evaluate(async () => {

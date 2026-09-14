@@ -317,8 +317,51 @@ export interface CountdownWidgetConfig {
   timezone?: string;
 }
 
+export type WeatherUnits = "fahrenheit" | "celsius";
+
+export interface WeatherLocation {
+  name: string;
+  latitude: number;
+  longitude: number;
+  timezone?: string;
+  country?: string;
+  admin1?: string;
+}
+
+export interface WeatherCurrent {
+  time: string;
+  temperature: number;
+  apparentTemperature: number;
+  weatherCode: number;
+  isDay: boolean;
+  windSpeed: number;
+}
+
+export interface WeatherForecastDay {
+  date: string;
+  weatherCode: number;
+  temperatureMax: number;
+  temperatureMin: number;
+  precipitationProbability: number;
+}
+
+export interface WeatherSnapshot {
+  location: WeatherLocation;
+  fetchedAt: string;
+  timezone: string;
+  units: WeatherUnits;
+  current: WeatherCurrent;
+  daily: WeatherForecastDay[];
+}
+
+export interface WeatherWidgetConfig {
+  location?: WeatherLocation;
+  units: WeatherUnits;
+  snapshot?: WeatherSnapshot;
+}
+
 export type BoardWidgetType =
-  "welcome" | "schedule" | "tasks" | "note" | "countdown" | "meal" | "photo" | "clock" | "calendar";
+  "welcome" | "schedule" | "tasks" | "note" | "countdown" | "meal" | "photo" | "clock" | "calendar" | "weather";
 
 export interface BoardWidget {
   id: string;
@@ -332,6 +375,7 @@ export interface BoardWidget {
   locked?: boolean;
   stackedHeight?: number;
   countdown?: CountdownWidgetConfig;
+  weather?: WeatherWidgetConfig;
 }
 
 export interface BoardLayout {

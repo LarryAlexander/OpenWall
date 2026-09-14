@@ -101,6 +101,25 @@ const photoSchema = z.object({
   id: z.string().min(1), householdId: z.string().min(1), name: z.string().min(1),
   mimeType: z.string().min(1), dataUrl: z.string().min(1), createdAt: z.iso.datetime(),
 });
+const weatherLocationSchema = z.object({
+  name: z.string().min(1), latitude: z.number(), longitude: z.number(),
+  timezone: z.string().optional(), country: z.string().optional(), admin1: z.string().optional(),
+});
+const weatherSnapshotSchema = z.object({
+  location: weatherLocationSchema, fetchedAt: z.iso.datetime(), timezone: z.string().min(1),
+  units: z.enum(["fahrenheit", "celsius"]),
+  current: z.object({
+    time: z.string().min(1), temperature: z.number(), apparentTemperature: z.number(),
+    weatherCode: z.number(), isDay: z.boolean(), windSpeed: z.number(),
+  }),
+  daily: z.array(z.object({
+    date: z.string().min(1), weatherCode: z.number(), temperatureMax: z.number(),
+    temperatureMin: z.number(), precipitationProbability: z.number(),
+  })),
+});
+const weatherConfigSchema = z.object({
+  location: weatherLocationSchema.optional(), units: z.enum(["fahrenheit", "celsius"]), snapshot: weatherSnapshotSchema.optional(),
+});
 
 export const backupSchema = z
   .object({
@@ -127,10 +146,11 @@ export const backupSchema = z
     attentionStates: z.array(attentionStateSchema).optional(),
     boardWidgets: z.array(z.object({
       id: z.string().min(1),
-      type: z.enum(["welcome", "schedule", "tasks", "note", "countdown", "meal", "photo", "clock", "calendar"]),
+      type: z.enum(["welcome", "schedule", "tasks", "note", "countdown", "meal", "photo", "clock", "calendar", "weather"]),
       x: z.number(), y: z.number(), w: z.number(), h: z.number(), tilt: z.number(),
       text: z.string().optional(), locked: z.boolean().optional(), stackedHeight: z.number().optional(),
       countdown: z.object({ title: z.string(), targetAt: z.string(), displayMode: z.enum(["auto", "days", "digital"]), completionMessage: z.string().optional(), timezone: z.string().optional() }).optional(),
+      weather: weatherConfigSchema.optional(),
     })).optional(),
   })
   .superRefine((data, context) => {
