@@ -8,8 +8,11 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 
 - Added a Family Inbox rail with prioritized task, reminder, routine, reward, and storage attention items, plus acknowledge/snooze actions and role-aware member badges.
 - Added a real Week agenda/grid, recurring routine occurrence records, shared household lists, expanded History actions, linked schedule countdowns, and local photo board actions.
+- Added a local seven-day meal planner with status, cook, preparation notes, and one-tap ingredient promotion into a deduplicated grocery list.
+- Added device-local focus and sleep display windows plus multi-file local photo rotation on the corkboard; neither feature uploads household data.
 - Expanded the eight-person fictional test bench with future closures, seeded history, pending approval, list items, routines, and countdown data.
 - Expanded schema-version 4 backups and Dexie persistence for lists, routine occurrences, attention state, board layout, and expanded household records.
+- Expanded schema-version 5 backups and Dexie persistence for meal plans, meal-linked grocery items, and ordered local photos; schema versions 1–4 remain importable.
 - Touch-first mobile personal home with member switching, quick task/schedule actions, and a dedicated path back to the full corkboard.
 - Family Rewards upgrade with configurable Star values, member balances, streaks, levels, reward shop, shared goals, weekly progress, activity feed, reactions, child approval states, and parent corrections.
 - Device-only parent PIN unlock for protected reward actions, with 15-minute sessions and no backup/export of the PIN.

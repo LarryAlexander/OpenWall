@@ -2174,6 +2174,16 @@ fieldset {
 .list-add-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .55rem; margin-top: .55rem; }
 .list-add-row input { margin: 0; }
 .list-empty { color: var(--ink-muted); padding: .6rem 0; }
+.meal-planner-card { grid-column: 1 / -1; grid-template-columns: 48px minmax(0, 1fr); align-items: start; }
+.meal-planner-form { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem; margin-top: .4rem; }
+.meal-planner-form button { justify-self: start; }
+.meal-plan-list { grid-column: 1 / -1; display: grid; gap: .55rem; margin-top: .3rem; }
+.meal-plan-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: .75rem 0; border-top: 1px solid var(--line); }
+.meal-plan-row > div:first-child { min-width: 0; display: grid; gap: .15rem; }
+.meal-plan-row strong { overflow-wrap: anywhere; }
+.meal-plan-row span, .meal-plan-row small { color: var(--ink-muted); font-size: .76rem; overflow-wrap: anywhere; }
+.meal-plan-actions { display: flex; align-items: center; justify-content: flex-end; gap: .45rem; flex-wrap: wrap; }
+.meal-plan-actions select { min-height: 38px; width: auto; }
 .week-grid-card { display: block; overflow-x: auto; }
 .week-grid { min-width: 760px; display: grid; grid-template-columns: repeat(7, minmax(100px, 1fr)); gap: .5rem; }
 .week-day-column { min-height: 420px; display: flex; flex-direction: column; gap: .6rem; padding: .7rem; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
@@ -2186,6 +2196,8 @@ fieldset {
 .week-event { display: grid; gap: .15rem; width: 100%; padding: .5rem .55rem; border: 0; border-left: 3px solid var(--green); border-radius: 8px; color: var(--ink); background: var(--surface-muted); font: inherit; text-align: left; }
 .week-event.kind-school-closure { border-left-color: #b65f47; background: #f8e9e4; }
 .week-event.kind-reminder { border-left-color: #9b7527; }
+.week-event.task-event { border-left-color: var(--gold); }
+.week-event.task-event.is-complete, .week-agenda-event.task-event.is-complete { opacity: .62; }
 .week-event time, .week-event strong { min-width: 0; overflow-wrap: anywhere; }
 .week-event time { color: var(--ink-muted); font-size: .68rem; }
 .week-event strong { font-size: .77rem; line-height: 1.25; }
@@ -2204,6 +2216,27 @@ fieldset {
 .settings-index { display: flex; flex-wrap: wrap; gap: .45rem; margin: -1rem 0 1.5rem; }
 .settings-index a { color: var(--green); border: 1px solid var(--line); border-radius: 999px; padding: .4rem .65rem; font-size: .76rem; font-weight: 750; text-decoration: none; background: var(--surface); }
 .settings-index a:hover, .settings-index a:focus-visible { background: var(--surface-muted); }
+.photo-manager-actions { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.photo-rotation-summary { display: grid; gap: .12rem; min-width: 12rem; }
+.photo-rotation-summary span { color: var(--ink-muted); font-size: .76rem; }
+.photo-thumbnails { display: flex; gap: .45rem; flex-wrap: wrap; width: 100%; }
+.photo-thumbnails button { width: 64px; height: 48px; padding: 0; overflow: hidden; border: 2px solid transparent; border-radius: 8px; background: var(--surface-muted); cursor: pointer; }
+.photo-thumbnails button.selected { border-color: var(--green); }
+.photo-thumbnails img { width: 100%; height: 100%; object-fit: cover; }
+.display-schedule-card { grid-template-columns: 48px minmax(0, 1fr); align-items: start; }
+.display-schedule-card > .inline-choice { grid-column: 1 / -1; }
+.display-schedule-fields { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+.display-schedule-fields label { display: grid; gap: .3rem; color: var(--ink-muted); font-size: .75rem; font-weight: 700; }
+.display-schedule-fields input { margin: 0; }
+.display-schedule-status { grid-column: 1 / -1; color: var(--green) !important; font-weight: 700; }
+.display-schedule-banner { width: min(1800px, 100%); margin: 0 auto 14px; padding: .7rem 1rem; display: flex; align-items: center; gap: .6rem; border-radius: 12px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
+.display-schedule-banner span { color: var(--ink-muted); font-size: .8rem; }
+.display-schedule-banner.display-sleep { background: #e8e9f2; color: #34364d; }
+.display-schedule-banner.display-focus { background: #e7f0e8; color: #294838; }
+.display-sleep-overlay { position: absolute; inset: 0; z-index: 20; display: grid; place-content: center; gap: .45rem; padding: 2rem; text-align: center; text-transform: none; color: #ececf5; background: rgba(27, 28, 42, .9); }
+.display-sleep-overlay svg { width: 2rem; height: 2rem; margin: 0 auto .25rem; }
+.display-sleep-overlay strong { font-size: clamp(1.2rem, 2vw, 2rem); }
+.display-sleep-overlay span { color: #c7c8d6; font-size: .85rem; }
 
 @media (max-width: 900px) {
   .board-upcoming { grid-template-columns: 1fr; gap: .65rem; }
@@ -2211,6 +2244,7 @@ fieldset {
   .attention-actions { grid-column: 2; justify-content: flex-start; }
   .list-create-card { grid-template-columns: 48px minmax(0, 1fr); }
   .list-create-card input, .list-create-card select, .list-create-card button { grid-column: 1 / -1; }
+  .meal-planner-form { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 600px) {
@@ -3762,7 +3796,7 @@ fieldset {
   .mobile-personal-hint { color: var(--ink-muted); font-size: .78rem; line-height: 1.4; }
   .mobile-personal-hint { margin: 13px 0 0; }
   .board-widget { min-height: clamp(145px, 48vw, 220px); }
-  .widget-schedule { min-height: clamp(360px, 105vw, 480px); }
+  .widget-schedule { min-height: clamp(300px, 82vw, 440px); }
   .widget-tasks { min-height: clamp(280px, 82vw, 370px); }
   .widget-note,
   .widget-countdown,
@@ -3816,12 +3850,18 @@ fieldset {
   .people-card > .icon-button { grid-column: 1 / -1; width: 100%; }
   .photo-manager { align-items: stretch; }
   .photo-manager img { width: 100%; max-height: min(52vw, 260px); }
+  .photo-thumbnails img { width: 100%; max-height: none; }
   .photo-empty { width: 100%; min-width: 0; }
   .history-row { grid-template-columns: auto minmax(0, 1fr); }
   .history-row small { grid-column: 2; }
   .filter-row { flex-wrap: wrap; gap: 10px; }
   .filter-row label,
   .filter-row select { width: 100%; }
+  .meal-planner-form { grid-template-columns: 1fr; }
+  .meal-plan-row { display: grid; }
+  .meal-plan-actions { justify-content: flex-start; }
+  .display-schedule-fields { grid-template-columns: 1fr 1fr; }
+  .display-schedule-banner { align-items: flex-start; flex-direction: column; gap: .2rem; }
 
   .dashboard-page-header { align-items: stretch; flex-direction: column; gap: 16px; }
   .page-primary-action { width: 100%; }

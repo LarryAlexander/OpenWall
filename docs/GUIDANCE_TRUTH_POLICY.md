@@ -1,6 +1,6 @@
 # OpenWall Guidance Truth and Misleading-Claim Guardrails
 
-Last updated: 2026-09-03
+Last updated: 2026-09-14
 
 ## Purpose
 
@@ -19,13 +19,13 @@ Future Guide content may display these labels when the distinction helps a house
 
 | Topic            | Misleading shorthand to avoid                 | Required truthful explanation                                                                                                                           |
 | ---------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Backups          | “Back up your entire board.”                  | Version 2 backups include household records, routines, history, rewards, photos, and board layout when available. Guide preferences remain device-specific. |
+| Backups          | “Back up your entire board.”                  | Version 5 backups include household records, routines, history, rewards, photos, meal plans, and board layout when available. Guide preferences remain device-specific. |
 | Offline use      | “Always works offline.”                       | Offline startup is expected only after one successful cached visit, and service-worker behavior varies by browser.                                      |
 | Local-first      | “OpenWall never contacts a server.”           | Household data has no application backend or telemetry. The app still contacts its static host when loading or checking for an update while online.     |
 | Storage safety   | “Your information is permanently saved.”      | Data remains in the current browser profile and can be removed by site-data cleanup, private browsing, storage pressure, or device loss.                |
-| Device transfer  | “Restore everything on another device.”       | Version 2 backups transfer supported household records and board layout; device-specific Guide preferences do not transfer. |
-| Photos           | “Add family photos.”                          | Photos can be selected, replaced, removed, and persisted locally through the repository; OpenWall does not upload them. Storage/quota failures remain possible. |
-| Notes and meals  | “Edit notes and meal plans.”                  | These cards are currently visual placeholders. Editable notes and functional meal planning remain planned work.                                         |
+| Device transfer  | “Restore everything on another device.”       | Version 5 backups transfer supported household records, meal plans, photos, and board layout; device-specific Guide preferences do not transfer. |
+| Photos           | “Add family photos.”                          | Multiple explicitly selected photos can be added, previewed, removed, persisted locally, and rotated on the board; OpenWall does not upload them. Storage/quota failures remain possible. |
+| Meal planner     | “Edit notes and meal plans.”                  | Meal plans support a date, serving time, cook, preparation note, status, and ingredient promotion into a local grocery list. |
 | Calendars        | “Connect your calendar.”                      | Provider connections and `.ics` import are roadmap work, not current functionality.                                                                     |
 | Multi-device use | “Keep every screen in sync.”                  | MVP data is local to one browser profile; cross-device synchronization does not exist yet.                                                              |
 | Installation     | “Install on any device.”                      | Installation and kiosk controls depend on browser and operating-system support.                                                                         |

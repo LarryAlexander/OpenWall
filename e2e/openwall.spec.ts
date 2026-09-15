@@ -46,6 +46,123 @@ test("opens the eight-person testing household and exposes the expanded navigati
   await expect(page.getByLabel("Name for Zuri")).toBeVisible();
 });
 
+test("shows weekly schedule items and recurring routines in Week", async ({ page }) => {
+  await page.getByRole("button", { name: /8-person test household/i }).click();
+  await page.getByRole("button", { name: "Week", exact: true }).click();
+
+  await expect(page.getByRole("heading", { name: "Week" })).toBeVisible();
+  const visibleWeek = page.locator(".week-grid-card:visible, .week-agenda-card:visible");
+  await expect(visibleWeek).toBeVisible();
+  await expect(visibleWeek.getByText("Morning reset", { exact: true }).first()).toBeVisible();
+  await expect(visibleWeek.getByText("School drop-off", { exact: true }).first()).toBeVisible();
+});
+
+test("completes and skips routine occurrences without deleting the routine", async ({ page }) => {
+  await page.getByRole("button", { name: /8-person test household/i }).click();
+  await page.getByRole("button", { name: "Lists", exact: true }).click();
+
+  await page.getByLabel("Routine title").fill("Morning reset test");
+  await page.getByRole("button", { name: "Add routine", exact: true }).click();
+  const completedRoutine = page.locator(".settings-card").filter({ hasText: "Morning reset test" }).first();
+  await expect(completedRoutine).toBeVisible();
+
+  await page.getByRole("button", { name: "Week", exact: true }).click();
+  const completedTask = page.locator(".task-event:visible").filter({ hasText: "Morning reset test" }).first();
+  await expect(completedTask).toBeVisible();
+  await completedTask.click();
+  await expect(completedTask).toHaveClass(/is-complete/);
+
+  await page.reload();
+  await page.getByRole("button", { name: "Week", exact: true }).click();
+  await expect(page.locator(".task-event:visible").filter({ hasText: "Morning reset test" }).first()).toHaveClass(/is-complete/);
+
+  await page.getByRole("button", { name: "Lists", exact: true }).click();
+  await page.getByLabel("Routine title").fill("Evening reset test");
+  await page.getByRole("button", { name: "Add routine", exact: true }).click();
+  const skippedRoutine = page.locator(".settings-card").filter({ hasText: "Evening reset test" }).filter({ hasText: "Repeats daily" }).first();
+  await skippedRoutine.getByRole("button", { name: "Skip today", exact: true }).click();
+  await expect(skippedRoutine).toBeVisible();
+
+  await page.getByRole("button", { name: "Week", exact: true }).click();
+  const todayWeekSection = page.locator(".week-day-column.is-today:visible, .week-agenda-day.is-today:visible");
+  await expect(todayWeekSection.filter({ hasText: "Evening reset test" }).locator(".task-event")).toHaveCount(0);
+  await page.getByRole("button", { name: "Lists", exact: true }).click();
+  await expect(page.locator(".settings-card").filter({ hasText: "Evening reset test" })).toBeVisible();
+});
+
+test("creates and persists a household list item", async ({ page }) => {
+  await page.getByRole("button", { name: /8-person test household/i }).click();
+  await page.getByRole("button", { name: "Lists", exact: true }).click();
+
+  await page.getByLabel("List title").fill("Grocery run");
+  await page.getByLabel("List type").selectOption("grocery");
+  await page.getByRole("button", { name: "Add list", exact: true }).click();
+  const list = page.locator(".household-list-card").filter({ hasText: "Grocery run" });
+  await list.getByLabel("Add item to Grocery run").fill("Milk");
+  await list.getByRole("button", { name: "Add item", exact: true }).click();
+  await expect(list.getByText("Milk", { exact: true })).toBeVisible();
+  const milk = list.getByRole("checkbox", { name: "Milk", exact: true });
+  await milk.click();
+  await expect(milk).toBeChecked();
+
+  await page.reload();
+  await page.getByRole("button", { name: "Lists", exact: true }).click();
+  const restoredList = page.locator(".household-list-card").filter({ hasText: "Grocery run" });
+  await expect(restoredList.getByRole("checkbox", { name: "Milk", exact: true })).toBeChecked();
+});
+
+test("plans a meal and promotes its ingredients to groceries", async ({ page }) => {
+  await page.getByRole("button", { name: /8-person test household/i }).click();
+  await page.getByRole("button", { name: "Lists", exact: true }).click();
+
+  await page.getByLabel("Meal name").fill("Tacos");
+  await page.getByLabel("Meal ingredients").fill("Tortillas, Beans");
+  await page.getByRole("button", { name: "Add meal", exact: true }).click();
+  const meal = page.locator(".meal-plan-row").filter({ hasText: "Tacos" });
+  await expect(meal).toBeVisible();
+  await meal.getByRole("button", { name: "Add ingredients", exact: true }).click();
+  const groceries = page.locator(".household-list-card").filter({ hasText: "Groceries" });
+  await expect(groceries.getByText("Tortillas", { exact: true })).toBeVisible();
+  await expect(groceries.getByText("Beans", { exact: true })).toBeVisible();
+
+  await page.reload();
+  await page.getByRole("button", { name: "Lists", exact: true }).click();
+  await expect(page.locator(".meal-plan-row").filter({ hasText: "Tacos" })).toBeVisible();
+  await expect(page.locator(".household-list-card").filter({ hasText: "Groceries" }).getByText("Beans", { exact: true })).toBeVisible();
+
+  await page.locator(".meal-plan-row").filter({ hasText: "Tacos" }).getByRole("button", { name: "Remove meal Tacos", exact: true }).click();
+  await expect(page.locator(".meal-plan-row").filter({ hasText: "Tacos" })).toHaveCount(0);
+  await expect(page.locator(".household-list-card").filter({ hasText: "Groceries" }).getByText("Beans", { exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Lists", exact: true }).click();
+  await expect(page.locator(".meal-plan-row").filter({ hasText: "Tacos" })).toHaveCount(0);
+  await expect(page.locator(".household-list-card").filter({ hasText: "Groceries" }).getByText("Beans", { exact: true })).toBeVisible();
+});
+
+test("persists a local display schedule and rotates selected photos", async ({ page }) => {
+  await page.getByRole("button", { name: /explore a sample home/i }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByLabel("Enable display schedule").check();
+  await page.getByLabel("Focus starts").fill("00:00");
+  await page.getByLabel("Focus ends").fill("23:59");
+  await expect(page.getByText(/Current mode:/i)).toBeVisible();
+  await page.getByRole("button", { name: "Today", exact: true }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Focus hours" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Photos", exact: true }).click();
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
+  await page.locator('input[type="file"]').setInputFiles([
+    { name: "first.png", mimeType: "image/png", buffer: png },
+    { name: "second.png", mimeType: "image/png", buffer: png },
+  ]);
+  await expect(page.getByText("2 local photos", { exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Photos", exact: true }).click();
+  await expect(page.getByText("2 local photos", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(page.getByLabel("Enable display schedule")).toBeChecked();
+});
+
 test("creates a blank household and adds a task", async ({ page }) => {
   await page.getByRole("button", { name: /set up my household/i }).click();
   await page.getByLabel("Household name").fill("The Test Home");
@@ -120,6 +237,14 @@ test("adds and persists a configured local weather card", async ({ page }) => {
       }),
     }),
   );
+
+  // Playwright page routes do not intercept requests fulfilled by a service
+  // worker. Start this network-mocked scenario without the app-shell worker.
+  await page.evaluate(async () => {
+    const registrations = await navigator.serviceWorker?.getRegistrations();
+    await Promise.all((registrations ?? []).map((registration) => registration.unregister()));
+  });
+  await page.reload();
 
   await page.getByRole("button", { name: /explore a sample home/i }).click();
   await page.getByRole("button", { name: "Add to board" }).click();
@@ -522,9 +647,31 @@ test("reorders cards by dragging in the responsive board", async ({ page }) => {
   expect(taskBox).not.toBeNull();
   expect(gripBox).not.toBeNull();
 
-  await page.mouse.move(gripBox!.x + gripBox!.width / 2, gripBox!.y + gripBox!.height / 2);
+  // Keep the drop point inside the emulated tablet viewport. The stacked
+  // board can extend below the fold, so scroll while the pointer is held to
+  // keep both the drag start and the eventual pointerup reliable.
+  const viewport = page.viewportSize();
+  const scrollDelta = Math.max(
+    0,
+    taskBox!.y + taskBox!.height / 2 - ((viewport?.height ?? 1194) - 100),
+  );
+
+  await scheduleGrip.hover();
+  await page.waitForTimeout(100);
+  const liveGripBox = await scheduleGrip.boundingBox();
+  expect(liveGripBox).not.toBeNull();
+  await page.mouse.move(liveGripBox!.x + liveGripBox!.width / 2, liveGripBox!.y + liveGripBox!.height / 2);
   await page.mouse.down();
-  await page.mouse.move(taskBox!.x + taskBox!.width / 2, taskBox!.y + taskBox!.height - 10, {
+  await expect(schedule).toHaveClass(/is-dragging/);
+  await page.evaluate((delta) => window.scrollBy(0, delta), scrollDelta);
+  const visibleTaskBox = await tasks.boundingBox();
+  expect(visibleTaskBox).not.toBeNull();
+  const dropY = Math.min(
+    visibleTaskBox!.y + visibleTaskBox!.height - 10,
+    (viewport?.height ?? 1194) - 12,
+  );
+  expect(dropY).toBeGreaterThan(visibleTaskBox!.y + visibleTaskBox!.height / 2);
+  await page.mouse.move(visibleTaskBox!.x + visibleTaskBox!.width / 2, dropY, {
     steps: 8,
   });
   await page.mouse.up();
@@ -568,6 +715,8 @@ test("offers reliable responsive manipulation controls and persists their change
     .poll(() => schedule.evaluate((card) => card.getBoundingClientRect().height))
     .toBeLessThan(initialHeight);
 
+  // Let the IndexedDB layout write settle before exercising reload recovery.
+  await page.waitForTimeout(250);
   await page.reload();
   const savedSchedule = page.locator('[data-widget-id="schedule"]');
   await expect

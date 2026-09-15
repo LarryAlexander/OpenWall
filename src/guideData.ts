@@ -173,9 +173,9 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
     steps: [
       "Click the '+ Add to board' button located in the top toolbar.",
       "Choose Yellow Sticky for a visual reminder or Tasks for the shared household task list.",
-      "Pick Meal for a simple dinner card, Photo to choose a device-local image, or Countdown to add an editable live clock.",
+      "Pick Meal for a simple dinner card, Photo to choose device-local images, or Countdown to add an editable live clock.",
       "New cards appear selected and ready to position, resize, lock, or remove.",
-      "Schedule, task, note, and meal content is editable from the board. Open a sticky note or meal card and choose Remove when you no longer need it; OpenWall asks for confirmation before tearing it off. Photos remain local to this device and can be replaced from Photos.",
+      "Schedule, task, note, and meal content is editable from the board. Open a sticky note or meal card and choose Remove when you no longer need it; OpenWall asks for confirmation before tearing it off. Photos remain local to this device and can be added or removed from Photos, where the board rotates selected images.",
     ],
     action: {
       type: "tour-step",
@@ -448,7 +448,7 @@ export const GUIDE_ARTICLES: GuideArticle[] = [
       "Under 'Back up your household', click 'Export backup'.",
       "A versioned JSON file (for example, openwall-YYYY-MM-DD.json) will be saved to your device.",
       "Store this file in your personal documents folder or cloud backup for long-term safety.",
-      "Version 2 backups protect household members, schedules, tasks, routines, activity history, rewards, photos, and the freeform board layout when it is available.",
+      "Current backups protect household members, schedules, tasks, routines, activity history, rewards, meal plans, grocery links, photos, and the freeform board layout when it is available.",
     ],
     action: {
       type: "navigate",
@@ -609,7 +609,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       "Direct corkboard arrangement with grip-based dragging, resizing controls, and per-card locking.",
       "Local-first architecture: Household data and board settings stay in this browser without accounts, servers, or telemetry.",
       "New OpenWall Guide: Built-in 60-second orientation tour, searchable offline help library, and release history.",
-      "Versioned household backups: Export members, schedules, and tasks from Settings while board-layout backup remains planned.",
+      "Versioned household backups: Export supported household records, photos, meal plans, and board layout from Settings; Guide preferences remain device-specific.",
     ],
     relatedArticleIds: [
       "welcome-overview",

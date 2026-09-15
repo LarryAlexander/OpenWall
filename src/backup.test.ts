@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseBackup, serializeBackup } from "./backup";
 import { createEightPersonTestHousehold, createSampleHousehold } from "./sample";
+import type { HouseholdListItem, MealPlan } from "./types";
 
 describe("OpenWall backup", () => {
   it("round-trips a household snapshot", () => {
@@ -58,5 +59,16 @@ describe("OpenWall backup", () => {
     };
     const restored = parseBackup(serializeBackup(household, [weather]));
     expect(restored.boardWidgets?.[0]).toEqual(weather);
+  });
+
+  it("round-trips meal plans and grocery links in schema v5", () => {
+    const household = createSampleHousehold();
+    const now = new Date().toISOString();
+    const meal: MealPlan = { id: "meal-1", householdId: household.household.id, date: now.slice(0, 10), name: "Tacos", ingredientTitles: ["Beans"], status: "planned", createdAt: now, updatedAt: now };
+    const listItem: HouseholdListItem = { id: "item-1", listId: "grocery-1", householdId: household.household.id, title: "Beans", sourceMealId: meal.id, sortOrder: 0, createdAt: now, updatedAt: now };
+    const restored = parseBackup(serializeBackup({ ...household, mealPlans: [meal], listItems: [listItem] }));
+    expect(restored.mealPlans).toEqual([meal]);
+    expect(restored.listItems).toEqual([listItem]);
+    expect(JSON.parse(serializeBackup({ ...household, mealPlans: [meal] })).schemaVersion).toBe(5);
   });
 });

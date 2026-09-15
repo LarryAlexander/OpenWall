@@ -75,7 +75,12 @@ const listSchema = z.object({
 });
 const listItemSchema = z.object({
   id: z.string().min(1), listId: z.string().min(1), householdId: z.string().min(1), title: z.string().min(1),
-  completedAt: z.iso.datetime().optional(), sortOrder: z.number().int().nonnegative(), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime(),
+  sourceMealId: z.string().optional(), completedAt: z.iso.datetime().optional(), sortOrder: z.number().int().nonnegative(), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime(),
+});
+const mealPlanSchema = z.object({
+  id: z.string().min(1), householdId: z.string().min(1), date: z.string().min(1), name: z.string().min(1),
+  servingTime: z.string().optional(), cookMemberId: z.string().optional(), preparationNote: z.string().optional(),
+  ingredientTitles: z.array(z.string()), status: z.enum(["planned", "cooking", "served"]), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime(),
 });
 const attentionStateSchema = z.object({
   id: z.string().min(1), householdId: z.string().min(1), sourceType: z.enum(["task", "routine", "schedule", "reward", "system"]), sourceId: z.string().min(1),
@@ -99,7 +104,7 @@ const activitySchema = z.object({ id: z.string().min(1), householdId: z.string()
 const reactionSchema = z.object({ id: z.string().min(1), householdId: z.string().min(1), activityId: z.string().min(1), memberId: z.string().min(1), type: z.enum(["heart", "clap", "celebrate", "laugh", "star"]), createdAt: z.iso.datetime() });
 const photoSchema = z.object({
   id: z.string().min(1), householdId: z.string().min(1), name: z.string().min(1),
-  mimeType: z.string().min(1), dataUrl: z.string().min(1), createdAt: z.iso.datetime(),
+  mimeType: z.string().min(1), dataUrl: z.string().min(1), caption: z.string().optional(), sortOrder: z.number().int().nonnegative().optional(), createdAt: z.iso.datetime(),
 });
 const weatherLocationSchema = z.object({
   name: z.string().min(1), latitude: z.number(), longitude: z.number(),
@@ -124,7 +129,7 @@ const weatherConfigSchema = z.object({
 export const backupSchema = z
   .object({
     format: z.literal("openwall-backup"),
-    schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
+    schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
     exportedAt: z.iso.datetime(),
     household: householdSchema,
     members: z.array(memberSchema),
@@ -142,6 +147,7 @@ export const backupSchema = z
     photos: z.array(photoSchema).optional(),
     lists: z.array(listSchema).optional(),
     listItems: z.array(listItemSchema).optional(),
+    mealPlans: z.array(mealPlanSchema).optional(),
     routineOccurrences: z.array(routineOccurrenceSchema).optional(),
     attentionStates: z.array(attentionStateSchema).optional(),
     boardWidgets: z.array(z.object({
@@ -164,7 +170,7 @@ export const backupSchema = z
       ...(data.rewards ?? []),
       ...(data.rewardDefinitions ?? []), ...(data.rewardGoals ?? []), ...(data.rewardChallenges ?? []), ...(data.rewardRedemptions ?? []), ...(data.activities ?? []), ...(data.reactions ?? []),
       ...(data.photos ?? []),
-      ...(data.lists ?? []), ...(data.listItems ?? []), ...(data.routineOccurrences ?? []), ...(data.attentionStates ?? []),
+      ...(data.lists ?? []), ...(data.listItems ?? []), ...(data.mealPlans ?? []), ...(data.routineOccurrences ?? []), ...(data.attentionStates ?? []),
     ].some(
       (item) => item.householdId !== householdId,
     );
@@ -174,7 +180,7 @@ export const backupSchema = z
 export function serializeBackup(snapshot: HouseholdSnapshot, boardWidgets?: HouseholdSnapshot["boardWidgets"]): string {
   const backup: OpenWallBackup = {
     format: "openwall-backup",
-    schemaVersion: 4,
+    schemaVersion: 5,
     exportedAt: new Date().toISOString(),
     ...snapshot,
     ...(boardWidgets ? { boardWidgets } : {}),
@@ -202,6 +208,7 @@ export function parseBackup(raw: string): HouseholdSnapshot {
     ...(parsed.boardWidgets ? { boardWidgets: parsed.boardWidgets } : {}),
     ...(parsed.lists ? { lists: parsed.lists } : {}),
     ...(parsed.listItems ? { listItems: parsed.listItems } : {}),
+    ...(parsed.mealPlans ? { mealPlans: parsed.mealPlans } : {}),
     ...(parsed.routineOccurrences ? { routineOccurrences: parsed.routineOccurrences } : {}),
     ...(parsed.attentionStates ? { attentionStates: parsed.attentionStates } : {}),
   };

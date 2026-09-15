@@ -18,6 +18,7 @@ import type {
   BoardLayout,
   HouseholdList,
   HouseholdListItem,
+  MealPlan,
   RoutineOccurrence,
   AttentionState,
 } from "./types";
@@ -40,6 +41,7 @@ class OpenWallDatabase extends Dexie {
   boardLayouts!: EntityTable<BoardLayout, "id">;
   lists!: EntityTable<HouseholdList, "id">;
   listItems!: EntityTable<HouseholdListItem, "id">;
+  mealPlans!: EntityTable<MealPlan, "id">;
   routineOccurrences!: EntityTable<RoutineOccurrence, "id">;
   attentionStates!: EntityTable<AttentionState, "id">;
 
@@ -100,6 +102,28 @@ class OpenWallDatabase extends Dexie {
       listItems: "id, householdId, listId, sortOrder, completedAt",
       attentionStates: "id, householdId, sourceType, sourceId, updatedAt",
     });
+    this.version(5).stores({
+      households: "id, updatedAt",
+      members: "id, householdId, sortOrder",
+      scheduleItems: "id, householdId, startsAt, calendarDate, *memberIds",
+      tasks: "id, householdId, dueDate, completedAt, routineId, *assigneeIds",
+      routines: "id, householdId, frequency",
+      routineOccurrences: "id, householdId, routineId, occurrenceDate, status, *assigneeIds",
+      history: "id, householdId, occurredAt, entityType",
+      rewards: "id, householdId, memberId, createdAt, status, sourceId",
+      rewardDefinitions: "id, householdId, active, updatedAt",
+      rewardGoals: "id, householdId, active, updatedAt",
+      rewardChallenges: "id, householdId, active, dueAt",
+      rewardRedemptions: "id, householdId, memberId, status, requestedAt",
+      activities: "id, householdId, createdAt, type",
+      reactions: "id, householdId, activityId, memberId",
+      photos: "id, householdId, createdAt, sortOrder",
+      boardLayouts: "id, householdId, updatedAt",
+      lists: "id, householdId, kind, updatedAt",
+      listItems: "id, householdId, listId, sortOrder, completedAt, sourceMealId",
+      mealPlans: "id, householdId, date, status, updatedAt",
+      attentionStates: "id, householdId, sourceType, sourceId, updatedAt",
+    });
   }
 }
 
@@ -135,6 +159,8 @@ export interface OpenWallRepository {
   deleteList(id: string): Promise<void>;
   saveListItem(item: HouseholdListItem): Promise<void>;
   deleteListItem(id: string): Promise<void>;
+  saveMealPlan(mealPlan: MealPlan): Promise<void>;
+  deleteMealPlan(id: string): Promise<void>;
   saveRoutineOccurrence(occurrence: RoutineOccurrence): Promise<void>;
   saveAttentionState(state: AttentionState): Promise<void>;
   deleteAttentionState(id: string): Promise<void>;
@@ -156,9 +182,10 @@ export class DexieOpenWallRepository implements OpenWallRepository {
     const reactions = optionalTable<FamilyReaction>(this.database, "reactions");
     const lists = optionalTable<HouseholdList>(this.database, "lists");
     const listItems = optionalTable<HouseholdListItem>(this.database, "listItems");
+    const mealPlans = optionalTable<MealPlan>(this.database, "mealPlans");
     const routineOccurrences = optionalTable<RoutineOccurrence>(this.database, "routineOccurrences");
     const attentionStates = optionalTable<AttentionState>(this.database, "attentionStates");
-    const [members, scheduleItems, tasks, routines, history, rewards, definitions, goals, challenges, redemptions, activityEntries, reactionEntries, photos, boardLayout, householdLists, householdListItems, occurrences, states] = await Promise.all([
+    const [members, scheduleItems, tasks, routines, history, rewards, definitions, goals, challenges, redemptions, activityEntries, reactionEntries, photos, boardLayout, householdLists, householdListItems, householdMealPlans, occurrences, states] = await Promise.all([
       this.database.members.where("householdId").equals(household.id).sortBy("sortOrder"),
       this.database.scheduleItems.where("householdId").equals(household.id).sortBy("startsAt"),
       this.database.tasks.where("householdId").equals(household.id).toArray(),
@@ -175,11 +202,12 @@ export class DexieOpenWallRepository implements OpenWallRepository {
       this.database.boardLayouts.where("householdId").equals(household.id).first(),
       lists ? lists.where("householdId").equals(household.id).sortBy("updatedAt") : Promise.resolve([]),
       listItems ? listItems.where("householdId").equals(household.id).sortBy("sortOrder") : Promise.resolve([]),
+      mealPlans ? mealPlans.where("householdId").equals(household.id).sortBy("date") : Promise.resolve([]),
       routineOccurrences ? routineOccurrences.where("householdId").equals(household.id).sortBy("occurrenceDate") : Promise.resolve([]),
       attentionStates ? attentionStates.where("householdId").equals(household.id).sortBy("updatedAt") : Promise.resolve([]),
     ]);
 
-    return { household, members, scheduleItems, tasks, routines, history, rewards, rewardDefinitions: definitions, rewardGoals: goals, rewardChallenges: challenges, rewardRedemptions: redemptions, activities: activityEntries, reactions: reactionEntries, photos, boardWidgets: boardLayout?.widgets, lists: householdLists, listItems: householdListItems, routineOccurrences: occurrences, attentionStates: states };
+    return { household, members, scheduleItems, tasks, routines, history, rewards, rewardDefinitions: definitions, rewardGoals: goals, rewardChallenges: challenges, rewardRedemptions: redemptions, activities: activityEntries, reactions: reactionEntries, photos, boardWidgets: boardLayout?.widgets, lists: householdLists, listItems: householdListItems, mealPlans: householdMealPlans, routineOccurrences: occurrences, attentionStates: states };
   }
 
   async replace(snapshot: HouseholdSnapshot): Promise<void> {
@@ -191,9 +219,10 @@ export class DexieOpenWallRepository implements OpenWallRepository {
     const reactions = optionalTable<FamilyReaction>(this.database, "reactions");
     const lists = optionalTable<HouseholdList>(this.database, "lists");
     const listItems = optionalTable<HouseholdListItem>(this.database, "listItems");
+    const mealPlans = optionalTable<MealPlan>(this.database, "mealPlans");
     const routineOccurrences = optionalTable<RoutineOccurrence>(this.database, "routineOccurrences");
     const attentionStates = optionalTable<AttentionState>(this.database, "attentionStates");
-    const transactionTables = ["households", "members", "scheduleItems", "tasks", "routines", "routineOccurrences", "history", "rewards", "rewardDefinitions", "rewardGoals", "rewardChallenges", "rewardRedemptions", "activities", "reactions", "photos", "boardLayouts", "lists", "listItems", "attentionStates"]
+    const transactionTables = ["households", "members", "scheduleItems", "tasks", "routines", "routineOccurrences", "history", "rewards", "rewardDefinitions", "rewardGoals", "rewardChallenges", "rewardRedemptions", "activities", "reactions", "photos", "boardLayouts", "lists", "listItems", "mealPlans", "attentionStates"]
       .filter((name) => this.database.tables.some((table) => table.name === name));
     await this.database.transaction(
       "rw",
@@ -218,6 +247,7 @@ export class DexieOpenWallRepository implements OpenWallRepository {
           this.database.boardLayouts.clear(),
           ...(lists ? [lists.clear()] : []),
           ...(listItems ? [listItems.clear()] : []),
+          ...(mealPlans ? [mealPlans.clear()] : []),
           ...(attentionStates ? [attentionStates.clear()] : []),
         ]);
         await this.database.households.add(snapshot.household);
@@ -238,6 +268,7 @@ export class DexieOpenWallRepository implements OpenWallRepository {
         if (snapshot.boardWidgets) await this.database.boardLayouts.put({ id: snapshot.household.id, householdId: snapshot.household.id, widgets: snapshot.boardWidgets, updatedAt: snapshot.household.updatedAt });
         if (lists && snapshot.lists?.length) await lists.bulkAdd(snapshot.lists);
         if (listItems && snapshot.listItems?.length) await listItems.bulkAdd(snapshot.listItems);
+        if (mealPlans && snapshot.mealPlans?.length) await mealPlans.bulkAdd(snapshot.mealPlans);
         if (attentionStates && snapshot.attentionStates?.length) await attentionStates.bulkAdd(snapshot.attentionStates);
       },
     );
@@ -353,6 +384,16 @@ export class DexieOpenWallRepository implements OpenWallRepository {
 
   deleteListItem(id: string) {
     const table = optionalTable<HouseholdListItem>(this.database, "listItems");
+    return table ? table.delete(id).then(() => undefined) : Promise.resolve();
+  }
+
+  saveMealPlan(mealPlan: MealPlan) {
+    const table = optionalTable<MealPlan>(this.database, "mealPlans");
+    return table ? table.put(mealPlan).then(() => undefined) : Promise.resolve();
+  }
+
+  deleteMealPlan(id: string) {
+    const table = optionalTable<MealPlan>(this.database, "mealPlans");
     return table ? table.delete(id).then(() => undefined) : Promise.resolve();
   }
 

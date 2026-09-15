@@ -43,6 +43,13 @@ import {
 } from "lucide-react";
 import { AppearanceSection } from "./AppearanceSection";
 import {
+  displayModeAt,
+  loadDisplaySchedule,
+  saveDisplaySchedule,
+  type DisplayMode,
+  type DisplaySchedulePreferences,
+} from "./displaySchedule";
+import {
   DEFAULT_APPEARANCE,
   applyAppearanceToDOM,
   loadAppearancePreferences,
@@ -72,6 +79,7 @@ import {
   type StartTourEventDetail,
 } from "./guideState";
 import { createEightPersonTestHousehold, createHousehold, createSampleHousehold } from "./sample";
+import { dateKey, dateKeysFrom, scheduleOccursOnDate } from "./planning";
 import { makeRoutineOccurrence, routineOccursOnDate } from "./routines";
 import {
   attentionStateFor,
@@ -118,6 +126,7 @@ import type {
   AttentionState,
   HouseholdList,
   HouseholdListItem,
+  MealPlan,
   RoutineOccurrence,
   ScheduleItem,
   WeatherWidgetConfig,
@@ -1048,6 +1057,7 @@ function TodayBoard({
   onAcknowledgeAttention,
   onSnoozeAttention,
   onBoardLayoutChange,
+  displayMode,
   suppressTips = false,
 }: {
   snapshot: HouseholdSnapshot;
@@ -1068,13 +1078,27 @@ function TodayBoard({
   onAcknowledgeAttention: (item: AttentionItem) => void;
   onSnoozeAttention: (item: AttentionItem) => void;
   onBoardLayoutChange?: (widgets: BoardWidget[]) => void;
+  displayMode: DisplayMode;
   suppressTips?: boolean;
 }) {
   const [today, setToday] = useState(() => new Date());
+  const photos = [...(snapshot.photos ?? [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  const [photoIndex, setPhotoIndex] = useState(0);
   useEffect(() => {
     const timer = window.setInterval(() => setToday(new Date()), 30_000);
     return () => window.clearInterval(timer);
   }, []);
+  useEffect(() => {
+    if (photos.length < 2) {
+      setPhotoIndex(0);
+      return;
+    }
+    const timer = window.setInterval(() => setPhotoIndex((current) => (current + 1) % photos.length), 30_000);
+    return () => window.clearInterval(timer);
+  }, [photos.length]);
+  useEffect(() => {
+    if (photoIndex >= photos.length) setPhotoIndex(0);
+  }, [photoIndex, photos.length]);
   const boardRef = useRef<HTMLDivElement>(null);
   const [draggingWidgetId, setDraggingWidgetId] = useState<string | null>(null);
   const [activeWidgetId, setActiveWidgetId] = useState<string | null>(null);
@@ -1115,6 +1139,7 @@ function TodayBoard({
     })
     .sort((a, b) => (a.calendarDate ?? a.startsAt).localeCompare(b.calendarDate ?? b.startsAt))
     .slice(0, 5);
+  const currentMeal = snapshot.mealPlans?.find((meal) => meal.date === todayInput());
 
   useEffect(() => {
     void repository.saveBoardLayout({
@@ -1430,8 +1455,8 @@ function TodayBoard({
         <button className="simple-widget meal-widget widget-editable-content" onClick={() => setEditingTextWidget(widget)} onDoubleClick={() => setEditingTextWidget(widget)} aria-label="Edit meal">
           <Utensils />
           <span>Tonight</span>
-          <p>{widget.text}</p>
-          <small className="widget-edit-hint">Double-click to edit</small>
+          <p>{currentMeal?.name ?? widget.text}</p>
+          <small className="widget-edit-hint">{currentMeal ? `${currentMeal.status}${currentMeal.servingTime ? ` · ${currentMeal.servingTime}` : ""}` : "Plan meals in Lists"}</small>
         </button>
       );
     if (widget.type === "countdown")
@@ -1472,11 +1497,11 @@ function TodayBoard({
     }
     if (widget.type === "weather")
       return <WeatherWidget widget={widget} onSave={(next) => updateWidget(next.id, next)} />;
-    const storedPhoto = snapshot.photos?.[0]?.dataUrl ?? null;
+    const storedPhoto = photos[photoIndex];
     return (
       <button className="photo-widget" onClick={() => onView("photos")} aria-label="Open Photos to manage the household photo">
-        {storedPhoto ? <img src={storedPhoto} alt="Selected household photo" /> : <div className="photo-sky"><Sun /><span /><span /></div>}
-        <p>{storedPhoto ? "A favorite moment" : "Add a favorite photo from Photos"}</p>
+        {storedPhoto ? <img src={storedPhoto.dataUrl} alt={storedPhoto.caption ?? storedPhoto.name} /> : <div className="photo-sky"><Sun /><span /><span /></div>}
+        <p>{storedPhoto ? (photos.length > 1 ? `Local photo ${photoIndex + 1} of ${photos.length}` : "A favorite moment") : "Add a favorite photo from Photos"}</p>
       </button>
     );
   };
@@ -1489,7 +1514,7 @@ function TodayBoard({
     suppressBoardTips || guideState.tourStatus === "unseen" || showWhatsNew;
 
   return (
-    <div className="corkboard-view">
+    <div className={`corkboard-view display-mode-${displayMode}`}>
       <header className="cork-toolbar">
         <div>
           <p className="eyebrow">Open corkboard</p>
@@ -1508,6 +1533,7 @@ function TodayBoard({
           </button>
         </div>
       </header>
+      {displayMode !== "normal" && <div className={`display-schedule-banner display-${displayMode}`} role="status"><strong>{displayMode === "sleep" ? "Sleep hours" : "Focus hours"}</strong><span>{displayMode === "sleep" ? "The wall is resting until the next display window." : "The wall is showing the essentials for a calmer view."}</span></div>}
       <div className="board-people" aria-label="Filter board by household member">
         <button className={!filterId ? "selected" : ""} onClick={() => onFilter(null)}>
           <Users /> All
@@ -1626,13 +1652,14 @@ function TodayBoard({
               aria-label={`${widget.type} card controls`}
               onPointerDown={(event) => {
                 const actionButton = (event.target as HTMLElement).closest("button");
-                if (actionButton && !actionButton.classList.contains("widget-drag-handle")) return;
+                if (actionButton) return;
                 beginMove(event, widget);
               }}
             >
               <button
                 className="widget-drag-handle"
                 disabled={widget.locked}
+                onPointerDown={(event) => beginMove(event, widget)}
                 aria-label={`Move ${widget.type} card`}
               >
                 <Grip />
@@ -1684,6 +1711,7 @@ function TodayBoard({
             <div className="widget-content">{renderWidget(widget)}</div>
           </article>
         ))}
+        {displayMode === "sleep" && <div className="display-sleep-overlay" role="status"><Timer aria-hidden="true" /><strong>Sleep hours</strong><span>The wall is resting. It will return for the next focus window.</span></div>}
       </div>
       {trayOpen && (
         <div
@@ -1966,6 +1994,9 @@ function DashboardView({
   onSaveRoutine,
   onSaveList,
   onSaveListItem,
+  onSaveMealPlan,
+  onDeleteMealPlan,
+  onAddMealIngredients,
   onDeleteList,
   onDeleteListItem,
   onSaveMember,
@@ -1994,6 +2025,9 @@ function DashboardView({
   onSaveRoutine: (routine: Routine) => void;
   onSaveList: (list: HouseholdList) => void;
   onSaveListItem: (item: HouseholdListItem) => void;
+  onSaveMealPlan: (mealPlan: MealPlan) => void;
+  onDeleteMealPlan: (mealPlan: MealPlan) => void;
+  onAddMealIngredients: (mealPlan: MealPlan) => void;
   onDeleteList: (list: HouseholdList) => void;
   onDeleteListItem: (item: HouseholdListItem) => void;
   onSaveMember: (member: HouseholdMember) => void;
@@ -2011,9 +2045,8 @@ function DashboardView({
   onAcknowledgeAttention: (item: AttentionItem) => void;
   onSnoozeAttention: (item: AttentionItem) => void;
 }) {
-  const [photoData, setPhotoData] = useState<string | null>(() => {
-    return snapshot.photos?.[0]?.dataUrl ?? null;
-  });
+  const photos = [...(snapshot.photos ?? [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  const [photoIndex, setPhotoIndex] = useState(0);
   const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
   const [calendarQuery, setCalendarQuery] = useState("");
   const [calendarKind, setCalendarKind] = useState<ScheduleItem["kind"] | "">("");
@@ -2052,6 +2085,12 @@ function DashboardView({
   const [listTitle, setListTitle] = useState("");
   const [listKind, setListKind] = useState<HouseholdList["kind"]>("custom");
   const [listItemTitles, setListItemTitles] = useState<Record<string, string>>({});
+  const [mealName, setMealName] = useState("");
+  const [mealDate, setMealDate] = useState(todayInput());
+  const [mealServingTime, setMealServingTime] = useState("18:00");
+  const [mealCookMemberId, setMealCookMemberId] = useState(snapshot.members[0]?.id ?? "");
+  const [mealPreparationNote, setMealPreparationNote] = useState("");
+  const [mealIngredients, setMealIngredients] = useState("");
   const [newMemberName, setNewMemberName] = useState("");
   const [rewardTitle, setRewardTitle] = useState("");
   const [rewardCost, setRewardCost] = useState("50");
@@ -2071,6 +2110,21 @@ function DashboardView({
     day.setDate(calendarStart.getDate() + index);
     return day;
   });
+  const mealPlans = [...(snapshot.mealPlans ?? [])].sort((a, b) => `${a.date}-${a.servingTime ?? ""}`.localeCompare(`${b.date}-${b.servingTime ?? ""}`));
+  const activePhoto = photos[photoIndex] ?? photos[0];
+
+  useEffect(() => {
+    if (photos.length < 2) {
+      setPhotoIndex(0);
+      return;
+    }
+    const timer = window.setInterval(() => setPhotoIndex((current) => (current + 1) % photos.length), 30_000);
+    return () => window.clearInterval(timer);
+  }, [photos.length]);
+
+  useEffect(() => {
+    if (photoIndex >= photos.length) setPhotoIndex(0);
+  }, [photoIndex, photos.length]);
 
   if (view === "inbox") {
     return (
@@ -2152,25 +2206,33 @@ function DashboardView({
   }
 
   if (view === "photos") {
+    const addPhotos = (files: FileList | null) => {
+      if (!files?.length) return;
+      Array.from(files).forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const photo: PhotoAsset = {
+            id: id(),
+            householdId: snapshot.household.id,
+            name: file.name,
+            mimeType: file.type || "image/*",
+            dataUrl: String(reader.result),
+            sortOrder: photos.length + index,
+            createdAt: new Date().toISOString(),
+          };
+          onSavePhoto(photo);
+        };
+        reader.readAsDataURL(file);
+      });
+    };
     return (
       <div className="settings-view">
-        <header><p className="eyebrow">Local memories</p><h1>Photos</h1><p>Choose an image from this device. OpenWall does not upload it.</p></header>
+        <header><p className="eyebrow">Local memories</p><h1>Photos</h1><p>Choose one or more images from this device. OpenWall rotates them locally and does not upload them.</p></header>
         <section className="settings-card photo-manager">
-          {photoData && !photoLoadFailed ? <img src={photoData} alt="Selected household photo" onError={() => setPhotoLoadFailed(true)} /> : <div className="photo-empty"><Image /><p>{photoLoadFailed ? "This saved photo could not be displayed. Choose it again to repair the card." : "No photo selected yet."}</p></div>}
-          <label className="secondary-button">{photoData ? "Replace photo" : "Choose a photo"}<input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = () => {
-              const value = String(reader.result);
-              const photo: PhotoAsset = { id: snapshot.photos?.[0]?.id ?? id(), householdId: snapshot.household.id, name: file.name, mimeType: file.type || "image/*", dataUrl: value, createdAt: snapshot.photos?.[0]?.createdAt ?? new Date().toISOString() };
-              setPhotoLoadFailed(false);
-              setPhotoData(value);
-              onSavePhoto(photo);
-            };
-            reader.readAsDataURL(file);
-          }} /></label>
-          {photoData && <button className="danger-button" onClick={() => { const photo = snapshot.photos?.[0]; setPhotoLoadFailed(false); setPhotoData(null); if (photo) onDeletePhoto(photo); }}>Remove photo</button>}
+          {activePhoto && !photoLoadFailed ? <img src={activePhoto.dataUrl} alt={activePhoto.caption ?? activePhoto.name} onError={() => setPhotoLoadFailed(true)} /> : <div className="photo-empty"><Image /><p>{photoLoadFailed ? "This saved photo could not be displayed. Choose it again to repair the card." : "No photos selected yet."}</p></div>}
+          <div className="photo-manager-actions"><label className="secondary-button">{photos.length ? "Add photos" : "Choose photos"}<input className="sr-only" type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => { addPhotos(event.target.files); event.target.value = ""; }} /></label>{activePhoto && <button className="danger-button" onClick={() => { setPhotoLoadFailed(false); onDeletePhoto(activePhoto); }}>Remove selected</button>}</div>
+          {photos.length > 0 && <div className="photo-rotation-summary" aria-live="polite"><strong>{photos.length} local photo{photos.length === 1 ? "" : "s"}</strong><span>Board rotation changes every 30 seconds.</span></div>}
+          {photos.length > 0 && <div className="photo-thumbnails" aria-label="Selected household photos">{photos.map((photo, index) => <button className={index === photoIndex ? "selected" : ""} key={photo.id} onClick={() => { setPhotoIndex(index); setPhotoLoadFailed(false); }} aria-label={`Show ${photo.name}`}><img src={photo.dataUrl} alt="" /></button>)}</div>}
         </section>
       </div>
     );
@@ -2184,6 +2246,26 @@ function DashboardView({
   }
 
   const heading = view === "lists" ? "Lists" : view === "calendar" ? "Calendar" : "Week";
+  const saveMeal = () => {
+    if (!mealName.trim() || !mealDate) return;
+    const now = new Date().toISOString();
+    onSaveMealPlan({
+      id: id(),
+      householdId: snapshot.household.id,
+      date: mealDate,
+      name: mealName.trim(),
+      servingTime: mealServingTime || undefined,
+      cookMemberId: mealCookMemberId || undefined,
+      preparationNote: mealPreparationNote.trim() || undefined,
+      ingredientTitles: mealIngredients.split(",").map((item) => item.trim()).filter(Boolean),
+      status: "planned",
+      createdAt: now,
+      updatedAt: now,
+    });
+    setMealName("");
+    setMealPreparationNote("");
+    setMealIngredients("");
+  };
   if (view === "calendar") {
     const upcoming = visibleEvents.filter((item) => parseISO(item.endsAt) >= today).slice(0, 12);
     const selectedEvents = visibleEvents.filter(
@@ -2323,8 +2405,22 @@ function DashboardView({
       day.setDate(weekStart.getDate() + index);
       return day;
     });
-    const dayKey = (date: Date) => format(date, "yyyy-MM-dd");
-    const eventsForDay = (date: Date) => visibleEvents.filter((item) => (item.calendarDate ?? format(parseISO(item.startsAt), "yyyy-MM-dd")) === dayKey(date));
+    const dayKey = (date: Date) => dateKey(date);
+    const weekDateKeys = dateKeysFrom(weekStart, weekDays.length);
+    const recurringTasks = (snapshot.routines ?? []).flatMap((routine) =>
+      weekDateKeys
+        .filter((date) => routineOccursOnDate(routine, date))
+        .map((date) => makeRoutineOccurrence(routine, date).task),
+    );
+    const weekTasks = Array.from(
+      new Map(
+        [...recurringTasks, ...visibleTasks]
+          .filter((task) => task.dueDate && weekDateKeys.includes(task.dueDate))
+          .map((task) => [task.id, task] as const),
+      ).values(),
+    );
+    const eventsForDay = (date: Date) => visibleEvents.filter((item) => scheduleOccursOnDate(item, dayKey(date)));
+    const tasksForDay = (date: Date) => weekTasks.filter((task) => task.dueDate === dayKey(date));
     return (
       <div className="settings-view week-view">
         <header className="dashboard-page-header">
@@ -2335,7 +2431,8 @@ function DashboardView({
           <div className="week-grid">
             {weekDays.map((day) => {
               const dayEvents = eventsForDay(day);
-              return <section className={`week-day-column${isSameDay(day, today) ? " is-today" : ""}`} key={dayKey(day)}><header><span>{format(day, "EEE")}</span><strong>{format(day, "d")}</strong></header><div className="week-all-day"><small>All day</small>{dayEvents.filter((item) => item.allDay || item.kind === "school-closure").map((item) => <button key={item.id} className={`week-event all-day kind-${item.kind ?? "event"}`} onClick={() => onEdit({ kind: "event", value: item })}>{item.title}</button>)}</div><div className="week-timed-events">{dayEvents.filter((item) => !item.allDay && item.kind !== "school-closure").map((item) => <button key={item.id} className={`week-event kind-${item.kind ?? "event"}`} onClick={() => onEdit({ kind: "event", value: item })}><time>{format(parseISO(item.startsAt), "h:mm a")}</time><strong>{item.title}</strong></button>)}{!dayEvents.length && <p className="week-empty">Open day</p>}</div><button className="week-add-day" onClick={() => onEdit({ kind: "event", initialDate: dayKey(day) })} aria-label={`Add event on ${format(day, "EEEE, MMMM d")}`}><Plus /> Add</button></section>;
+              const dayTasks = tasksForDay(day);
+              return <section className={`week-day-column${isSameDay(day, today) ? " is-today" : ""}`} key={dayKey(day)}><header><span>{format(day, "EEE")}</span><strong>{format(day, "d")}</strong></header><div className="week-all-day"><small>All day</small>{dayEvents.filter((item) => item.allDay || item.kind === "school-closure").map((item) => <button key={`${item.id}-${dayKey(day)}`} className={`week-event all-day kind-${item.kind ?? "event"}`} onClick={() => onEdit({ kind: "event", value: item })}>{item.title}</button>)}</div><div className="week-timed-events">{dayEvents.filter((item) => !item.allDay && item.kind !== "school-closure").map((item) => <button key={`${item.id}-${dayKey(day)}`} className={`week-event kind-${item.kind ?? "event"}`} onClick={() => onEdit({ kind: "event", value: item })}><time>{format(parseISO(item.startsAt), "h:mm a")}</time><strong>{item.title}</strong></button>)}{dayTasks.map((task) => <button key={task.id} className={`week-event task-event${task.completedAt ? " is-complete" : ""}`} onClick={() => onComplete(task)}><time>{task.completedAt ? "Done" : "Task"}</time><strong>{task.title}</strong></button>)}{!dayEvents.length && !dayTasks.length && <p className="week-empty">Open day</p>}</div><button className="week-add-day" onClick={() => onEdit({ kind: "event", initialDate: dayKey(day) })} aria-label={`Add event on ${format(day, "EEEE, MMMM d")}`}><Plus /> Add</button></section>;
             })}
           </div>
         </section>
@@ -2343,7 +2440,8 @@ function DashboardView({
           <div className="week-agenda-list">
             {weekDays.map((day) => {
               const dayEvents = eventsForDay(day);
-              return <section className="week-agenda-day" key={dayKey(day)}><header><strong>{format(day, "EEEE, MMMM d")}</strong><button className="text-button" onClick={() => onEdit({ kind: "event", initialDate: dayKey(day) })}><Plus /> Add</button></header>{dayEvents.length ? dayEvents.map((item) => <button className={`week-agenda-event kind-${item.kind ?? "event"}`} key={item.id} onClick={() => onEdit({ kind: "event", value: item })}><span>{item.allDay || item.kind === "school-closure" ? "All day" : format(parseISO(item.startsAt), "h:mm a")}</span><strong>{item.title}</strong></button>) : <p>Open day</p>}</section>;
+              const dayTasks = tasksForDay(day);
+              return <section className={`week-agenda-day${isSameDay(day, today) ? " is-today" : ""}`} key={dayKey(day)}><header><strong>{format(day, "EEEE, MMMM d")}</strong><button className="text-button" onClick={() => onEdit({ kind: "event", initialDate: dayKey(day) })}><Plus /> Add</button></header>{dayEvents.map((item) => <button className={`week-agenda-event kind-${item.kind ?? "event"}`} key={`${item.id}-${dayKey(day)}`} onClick={() => onEdit({ kind: "event", value: item })}><span>{item.allDay || item.kind === "school-closure" ? "All day" : format(parseISO(item.startsAt), "h:mm a")}</span><strong>{item.title}</strong></button>)}{dayTasks.map((task) => <button className={`week-agenda-event task-event${task.completedAt ? " is-complete" : ""}`} key={task.id} onClick={() => onComplete(task)}><span>{task.completedAt ? "Done" : "Task"}</span><strong>{task.title}</strong></button>)}{!dayEvents.length && !dayTasks.length && <p>Open day</p>}</section>;
             })}
           </div>
         </section>
@@ -2357,6 +2455,7 @@ function DashboardView({
         <section className="settings-card"><div className="settings-icon"><CalendarDays /></div><div><h2>Schedule</h2><p>{events.length} item{events.length === 1 ? "" : "s"} visible</p></div><button className="secondary-button" onClick={() => onEdit({ kind: "event" })}><Plus /> Add event</button></section>
         {view === "lists" && <section className="settings-card list-create-card"><div className="settings-icon"><ListPlus /></div><div><h2>Make a shared list</h2><p>Keep groceries, school bags, and household projects together.</p></div><input aria-label="List title" placeholder="Weekend errands" value={listTitle} onChange={(event) => setListTitle(event.target.value)} /><select aria-label="List type" value={listKind} onChange={(event) => setListKind(event.target.value as HouseholdList["kind"])}><option value="custom">Custom</option><option value="grocery">Grocery</option><option value="packing">Packing</option><option value="school">School</option><option value="chores">Chores</option></select><button className="primary-button" onClick={() => { if (!listTitle.trim()) return; const now = new Date().toISOString(); onSaveList({ id: id(), householdId: snapshot.household.id, title: listTitle.trim(), kind: listKind, memberIds: [], createdAt: now, updatedAt: now }); setListTitle(""); }}>Add list</button></section>}
         {view === "lists" && <section className="settings-card routine-builder-card"><div className="settings-icon"><RotateCcw /></div><div><h2>Repeat a routine</h2><p>Create a chore once and keep it on the family’s rhythm.</p></div><input aria-label="Routine title" placeholder="Morning checklist" value={routineTitle} onChange={(event) => setRoutineTitle(event.target.value)} /><select aria-label="Routine frequency" value={routineFrequency} onChange={(event) => setRoutineFrequency(event.target.value as Routine["frequency"])}><option value="daily">Every day</option><option value="weekly">Every week</option><option value="school-days">School days</option></select>{routineFrequency === "weekly" && <select aria-label="Routine weekday" value={routineWeekday} onChange={(event) => setRoutineWeekday(Number(event.target.value))}>{["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day, index) => <option key={day} value={index}>{day}</option>)}</select>}<select aria-label="Routine assignee" value={routineMemberId} onChange={(event) => setRoutineMemberId(event.target.value)}>{snapshot.members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select><button className="primary-button" onClick={() => { if (!routineTitle.trim()) return; const now = new Date().toISOString(); onSaveRoutine({ id: id(), householdId: snapshot.household.id, title: routineTitle.trim(), assigneeIds: [routineMemberId], frequency: routineFrequency, ...(routineFrequency === "weekly" ? { weekdays: [routineWeekday] } : {}), createdAt: now, updatedAt: now }); setRoutineTitle(""); }}>Add routine</button></section>}
+        {view === "lists" && <section className="settings-card meal-planner-card"><div className="settings-icon"><Utensils /></div><div><h2>Plan meals</h2><p>Keep the week’s meals and ingredients together. Add ingredients to a grocery list when you are ready.</p></div><div className="meal-planner-form"><input aria-label="Meal name" placeholder="Meal name" value={mealName} onChange={(event) => setMealName(event.target.value)} /><input aria-label="Meal date" type="date" value={mealDate} onChange={(event) => setMealDate(event.target.value)} /><input aria-label="Meal serving time" type="time" value={mealServingTime} onChange={(event) => setMealServingTime(event.target.value)} /><select aria-label="Meal cook" value={mealCookMemberId} onChange={(event) => setMealCookMemberId(event.target.value)}><option value="">Anyone</option>{snapshot.members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select><input aria-label="Meal preparation note" placeholder="Preparation note" value={mealPreparationNote} onChange={(event) => setMealPreparationNote(event.target.value)} /><input aria-label="Meal ingredients" placeholder="Ingredients, separated by commas" value={mealIngredients} onChange={(event) => setMealIngredients(event.target.value)} /><button className="primary-button" onClick={saveMeal}>Add meal</button></div><div className="meal-plan-list">{mealPlans.length ? mealPlans.map((meal) => { const cook = snapshot.members.find((member) => member.id === meal.cookMemberId); return <article className="meal-plan-row" key={meal.id}><div><strong>{meal.name}</strong><span>{format(parseISO(`${meal.date}T12:00:00`), "EEE, MMM d")}{meal.servingTime ? ` · ${meal.servingTime}` : ""}{cook ? ` · ${cook.name}` : ""}</span>{meal.preparationNote && <small>{meal.preparationNote}</small>}{meal.ingredientTitles.length > 0 && <small>Ingredients: {meal.ingredientTitles.join(", ")}</small>}</div><div className="meal-plan-actions"><select aria-label={`Status for ${meal.name}`} value={meal.status} onChange={(event) => onSaveMealPlan({ ...meal, status: event.target.value as MealPlan["status"], updatedAt: new Date().toISOString() })}><option value="planned">Planned</option><option value="cooking">Cooking</option><option value="served">Served</option></select><button className="secondary-button" onClick={() => onAddMealIngredients(meal)} disabled={!meal.ingredientTitles.length}>Add ingredients</button><button className="icon-button" aria-label={`Remove meal ${meal.name}`} onClick={() => onDeleteMealPlan(meal)}><Trash2 /></button></div></article>; }) : <p className="list-empty">No meals planned yet.</p>}</div></section>}
         {view !== "lists" && events.map((item) => <section className="settings-card" key={item.id}><div className="settings-icon"><CalendarDays /></div><div><h2>{item.title}</h2><p>{item.allDay || item.kind === "school-closure" ? "All day" : format(parseISO(item.startsAt), "EEE, MMM d · h:mm a")}{countdownLabel(item) ? ` · ${countdownLabel(item)}` : ""}</p></div><button className="secondary-button" onClick={() => onEdit({ kind: "event", value: item })}>Edit</button></section>)}
         {view === "lists" && visibleTasks.map((task) => <section className="settings-card" key={task.id}><div className="settings-icon"><ListChecks /></div><div><h2>{task.title}</h2><p>{task.completedAt ? "Complete" : task.dueDate ? `Due ${task.dueDate}` : "No due date"}</p></div><button className={task.completedAt ? "secondary-button" : "primary-button"} onClick={() => onComplete(task)}>{task.completedAt ? "Completed" : "Complete"}</button></section>)}
         {view === "lists" && (snapshot.routines ?? []).map((routine) => <section className="settings-card" key={routine.id}><div className="settings-icon"><RotateCcw /></div><div><h2>{routine.title}</h2><p>Repeats {routine.frequency}; assigned to {routine.assigneeIds.map((memberId) => getMember(memberId, snapshot.members)?.name).filter(Boolean).join(", ")}</p></div><button className="secondary-button" onClick={() => onUpdateRoutine({ ...routine, skippedDates: [...(routine.skippedDates ?? []), todayInput()], updatedAt: new Date().toISOString() })}>Skip today</button></section>)}
@@ -2384,6 +2483,8 @@ function SettingsView({
   appearance,
   onAppearanceChange,
   onAppearanceReset,
+  displaySchedule,
+  onDisplayScheduleChange,
   online,
   offlineReady,
   installPrompt,
@@ -2409,6 +2510,8 @@ function SettingsView({
   appearance: AppearancePreferences;
   onAppearanceChange: (next: AppearancePreferences) => void;
   onAppearanceReset?: () => void;
+  displaySchedule: DisplaySchedulePreferences;
+  onDisplayScheduleChange: (next: DisplaySchedulePreferences) => void;
   online: boolean;
   offlineReady: boolean;
   installPrompt: BeforeInstallPromptEvent | null;
@@ -2446,6 +2549,7 @@ function SettingsView({
       <nav className="settings-index" aria-label="Settings sections">
         <a href="#settings-install">Install</a>
         <a href="#settings-appearance">Appearance</a>
+        <a href="#settings-display-schedule">Display schedule</a>
         <a href="#settings-parent">Parent mode</a>
         <a href="#settings-backup">Backup & restore</a>
         <a href="#settings-updates">Updates</a>
@@ -2472,6 +2576,18 @@ function SettingsView({
         onChange={onAppearanceChange}
         onReset={onAppearanceReset}
       /></div>
+      <section id="settings-display-schedule" className="settings-card display-schedule-card">
+        <div className="settings-icon"><Timer /></div>
+        <div><h2>Display schedule</h2><p>Set quiet sleep hours and calmer focus hours for this display. These preferences stay on this device.</p></div>
+        <label className="inline-choice"><input type="checkbox" checked={displaySchedule.enabled} onChange={(event) => onDisplayScheduleChange({ ...displaySchedule, enabled: event.target.checked })} /> Enable display schedule</label>
+        <div className="display-schedule-fields">
+          <label>Focus starts<input type="time" value={displaySchedule.focusStart} onChange={(event) => onDisplayScheduleChange({ ...displaySchedule, focusStart: event.target.value })} /></label>
+          <label>Focus ends<input type="time" value={displaySchedule.focusEnd} onChange={(event) => onDisplayScheduleChange({ ...displaySchedule, focusEnd: event.target.value })} /></label>
+          <label>Sleep starts<input type="time" value={displaySchedule.sleepStart} onChange={(event) => onDisplayScheduleChange({ ...displaySchedule, sleepStart: event.target.value })} /></label>
+          <label>Sleep ends<input type="time" value={displaySchedule.sleepEnd} onChange={(event) => onDisplayScheduleChange({ ...displaySchedule, sleepEnd: event.target.value })} /></label>
+        </div>
+        {displaySchedule.enabled && <p className="display-schedule-status" role="status">Current mode: {displayModeAt(new Date(), displaySchedule)} · sleep {displaySchedule.sleepStart}–{displaySchedule.sleepEnd}</p>}
+      </section>
       <section id="settings-parent" className="settings-card parent-protection-card">
         <div className="settings-icon"><ShieldCheck /></div>
         <div><h2>Parent mode</h2><p>{parentUnlocked ? "Protected actions are unlocked for 15 minutes on this device." : hasParentPin() ? "Reward edits and approvals are protected by your local parent PIN." : "Create a local parent PIN before changing reward rules or approving Stars."}</p></div>
@@ -2664,12 +2780,22 @@ export default function App() {
     applyAppearanceToDOM(initial);
     return initial;
   });
+  const [displaySchedule, setDisplaySchedule] = useState<DisplaySchedulePreferences>(() => loadDisplaySchedule());
+  const [displayMode, setDisplayMode] = useState<DisplayMode>(() => displayModeAt(new Date(), loadDisplaySchedule()));
   const [storageWarning, setStorageWarning] = useState(false);
 
   useEffect(() => {
     applyAppearanceToDOM(appearance);
     saveAppearancePreferences(appearance);
   }, [appearance]);
+
+  useEffect(() => {
+    saveDisplaySchedule(displaySchedule);
+    const update = () => setDisplayMode(displayModeAt(new Date(), displaySchedule));
+    update();
+    const timer = window.setInterval(update, 30_000);
+    return () => window.clearInterval(timer);
+  }, [displaySchedule]);
 
   useEffect(() => {
     let cancelled = false;
@@ -3314,6 +3440,37 @@ export default function App() {
     await repository.saveListItem(item);
     setSnapshot((current) => current ? { ...current, listItems: [...(current.listItems ?? []).filter((value) => value.id !== item.id), item] } : current);
   };
+  const saveMealPlan = async (mealPlan: MealPlan) => {
+    await repository.saveMealPlan(mealPlan);
+    setSnapshot((current) => current ? { ...current, mealPlans: [...(current.mealPlans ?? []).filter((value) => value.id !== mealPlan.id), mealPlan].sort((a, b) => `${a.date}-${a.servingTime ?? ""}`.localeCompare(`${b.date}-${b.servingTime ?? ""}`)) } : current);
+  };
+  const deleteMealPlan = async (mealPlan: MealPlan) => {
+    await repository.deleteMealPlan(mealPlan.id);
+    // Grocery items are independent household records once promoted; deleting
+    // the meal must not make the shopping list appear to lose those items.
+    setSnapshot((current) => current ? { ...current, mealPlans: (current.mealPlans ?? []).filter((value) => value.id !== mealPlan.id) } : current);
+  };
+  const addMealIngredients = async (mealPlan: MealPlan) => {
+    if (!mealPlan.ingredientTitles.length) return;
+    const now = new Date().toISOString();
+    const groceryList = snapshot.lists?.find((list) => list.kind === "grocery") ?? {
+      id: id(), householdId: snapshot.household.id, title: "Groceries", kind: "grocery" as const, memberIds: [], createdAt: now, updatedAt: now,
+    };
+    const existingItems = (snapshot.listItems ?? []).filter((item) => item.listId === groceryList.id);
+    const existingTitles = new Set(existingItems.map((item) => item.title.trim().toLowerCase()));
+    const additions = mealPlan.ingredientTitles
+      .map((title) => title.trim())
+      .filter((title) => {
+        const normalized = title.toLowerCase();
+        if (!title || existingTitles.has(normalized)) return false;
+        existingTitles.add(normalized);
+        return true;
+      })
+      .map((title, index): HouseholdListItem => ({ id: id(), listId: groceryList.id, householdId: snapshot.household.id, title, sourceMealId: mealPlan.id, sortOrder: existingItems.length + index, createdAt: now, updatedAt: now }));
+    if (!snapshot.lists?.some((list) => list.id === groceryList.id)) await repository.saveList(groceryList);
+    await Promise.all(additions.map((item) => repository.saveListItem(item)));
+    setSnapshot((current) => current ? { ...current, lists: [...(current.lists ?? []).filter((list) => list.id !== groceryList.id), groceryList], listItems: [...(current.listItems ?? []), ...additions] } : current);
+  };
   const deleteListItem = async (item: HouseholdListItem) => {
     await repository.deleteListItem(item.id);
     setSnapshot((current) => current ? { ...current, listItems: (current.listItems ?? []).filter((value) => value.id !== item.id) } : current);
@@ -3455,6 +3612,7 @@ export default function App() {
             onAcknowledgeAttention={(item) => void saveAttentionState(item, { acknowledgedAt: new Date().toISOString() })}
             onSnoozeAttention={(item) => void saveAttentionState(item, { snoozedUntil: new Date(Date.now() + 60 * 60 * 1000).toISOString() })}
             onBoardLayoutChange={handleBoardLayoutChange}
+            displayMode={displayMode}
             suppressTips={suppressSubTips}
           />
         ) : view === "guide" ? (
@@ -3480,6 +3638,8 @@ export default function App() {
             appearance={appearance}
             onAppearanceChange={handleAppearanceChange}
             onAppearanceReset={handleAppearanceReset}
+            displaySchedule={displaySchedule}
+            onDisplayScheduleChange={setDisplaySchedule}
             online={online}
             offlineReady={offlineReady}
             installPrompt={installPrompt}
@@ -3517,6 +3677,9 @@ export default function App() {
             }}
             onSaveList={saveList}
             onSaveListItem={saveListItem}
+            onSaveMealPlan={saveMealPlan}
+            onDeleteMealPlan={deleteMealPlan}
+            onAddMealIngredients={addMealIngredients}
             onDeleteList={deleteList}
             onDeleteListItem={deleteListItem}
             onSaveMember={async (member) => {
@@ -3536,12 +3699,16 @@ export default function App() {
             onUpdateRoutine={async (routine) => {
               await repository.saveRoutine(routine);
               const now = new Date().toISOString();
-              const wasSkippedToday = routine.skippedDates?.includes(todayInput());
-              const skippedOccurrence: RoutineOccurrence | undefined = wasSkippedToday ? { id: `occurrence-${routine.id}-${todayInput()}`, householdId: routine.householdId, routineId: routine.id, occurrenceDate: todayInput(), status: "skipped", assigneeIds: routine.assigneeIds, updatedAt: now } : undefined;
+              const occurrenceDate = todayInput();
+              const wasSkippedToday = routine.skippedDates?.includes(occurrenceDate);
+              const skippedTask = snapshot.tasks.find((task) => task.id === `occurrence-${routine.id}-${occurrenceDate}`);
+              const removePendingTask = Boolean(wasSkippedToday && skippedTask && !skippedTask.completedAt);
+              const skippedOccurrence: RoutineOccurrence | undefined = wasSkippedToday ? { id: `occurrence-${routine.id}-${occurrenceDate}`, householdId: routine.householdId, routineId: routine.id, occurrenceDate, status: "skipped", assigneeIds: routine.assigneeIds, updatedAt: now } : undefined;
+              if (removePendingTask && skippedTask) await repository.deleteTask(skippedTask.id);
               if (skippedOccurrence) await repository.saveRoutineOccurrence(skippedOccurrence);
               const historyEntry: HistoryEntry | undefined = wasSkippedToday ? { id: id(), householdId: routine.householdId, entityId: routine.id, entityType: "routine", action: "skipped", occurredAt: now, memberIds: routine.assigneeIds, summary: `Skipped ${routine.title} for today` } : undefined;
               if (historyEntry) await repository.saveHistory(historyEntry);
-              setSnapshot((current) => current ? { ...current, routines: (current.routines ?? []).map((value) => value.id === routine.id ? routine : value), ...(historyEntry ? { history: [...(current.history ?? []), historyEntry] } : {}), ...(skippedOccurrence ? { routineOccurrences: [...(current.routineOccurrences ?? []).filter((value) => value.id !== skippedOccurrence.id), skippedOccurrence] } : {}) } : current);
+              setSnapshot((current) => current ? { ...current, routines: (current.routines ?? []).map((value) => value.id === routine.id ? routine : value), ...(removePendingTask ? { tasks: current.tasks.filter((task) => task.id !== skippedTask?.id) } : {}), ...(historyEntry ? { history: [...(current.history ?? []), historyEntry] } : {}), ...(skippedOccurrence ? { routineOccurrences: [...(current.routineOccurrences ?? []).filter((value) => value.id !== skippedOccurrence.id), skippedOccurrence] } : {}) } : current);
             }}
             onSaveReward={saveRewardEntry}
             onSaveRewardDefinition={saveRewardDefinition}
@@ -3552,11 +3719,11 @@ export default function App() {
             onRequestParentUnlock={requestParentUnlock}
             onSavePhoto={async (photo) => {
               await repository.savePhoto(photo);
-              setSnapshot((current) => current ? { ...current, photos: [photo] } : current);
+              setSnapshot((current) => current ? { ...current, photos: [...(current.photos ?? []).filter((value) => value.id !== photo.id), photo].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)) } : current);
             }}
             onDeletePhoto={async (photo) => {
               await repository.deletePhoto(photo.id);
-              setSnapshot((current) => current ? { ...current, photos: [] } : current);
+              setSnapshot((current) => current ? { ...current, photos: (current.photos ?? []).filter((value) => value.id !== photo.id) } : current);
             }}
             onAcknowledgeAttention={(item) => void saveAttentionState(item, { acknowledgedAt: new Date().toISOString() })}
             onSnoozeAttention={(item) => void saveAttentionState(item, { snoozedUntil: new Date(Date.now() + 60 * 60 * 1000).toISOString() })}

@@ -115,8 +115,25 @@ export interface HouseholdListItem {
   listId: string;
   householdId: string;
   title: string;
+  sourceMealId?: string;
   completedAt?: string;
   sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type MealPlanStatus = "planned" | "cooking" | "served";
+
+export interface MealPlan {
+  id: string;
+  householdId: string;
+  date: string;
+  name: string;
+  servingTime?: string;
+  cookMemberId?: string;
+  preparationNote?: string;
+  ingredientTitles: string[];
+  status: MealPlanStatus;
   createdAt: string;
   updatedAt: string;
 }
@@ -257,12 +274,14 @@ export interface PhotoAsset {
   name: string;
   mimeType: string;
   dataUrl: string;
+  caption?: string;
+  sortOrder?: number;
   createdAt: string;
 }
 
 export interface OpenWallBackup {
   format: "openwall-backup";
-  schemaVersion: 4;
+  schemaVersion: 5;
   exportedAt: string;
   household: Household;
   members: HouseholdMember[];
@@ -281,6 +300,7 @@ export interface OpenWallBackup {
   boardWidgets?: BoardWidget[];
   lists?: HouseholdList[];
   listItems?: HouseholdListItem[];
+  mealPlans?: MealPlan[];
   routineOccurrences?: RoutineOccurrence[];
   attentionStates?: AttentionState[];
 }
@@ -303,6 +323,7 @@ export interface HouseholdSnapshot {
   boardWidgets?: BoardWidget[];
   lists?: HouseholdList[];
   listItems?: HouseholdListItem[];
+  mealPlans?: MealPlan[];
   routineOccurrences?: RoutineOccurrence[];
   attentionStates?: AttentionState[];
 }

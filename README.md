@@ -39,7 +39,7 @@ you choose a place or grant a one-time location lookup. The selected location
 and last successful reading stay in this browser's local board data; OpenWall
 does not upload household records or require a weather API key.
 
-Calendar-provider sync, multi-device sync, meals, groceries, photos, AI, and home automation are roadmap features—not MVP claims.
+Calendar-provider sync, multi-device sync, AI, and home automation remain roadmap features. Local meals, groceries, routines, weekly planning, display scheduling, and selected-photo rotation are available in the Milestone 3 branch.
 
 ## Implementation
 

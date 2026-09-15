@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { DexieOpenWallRepository } from "./db";
 import { createSampleHousehold } from "./sample";
 import Dexie, { type EntityTable } from "dexie";
-import type { Household, HouseholdMember, HouseholdTask, ScheduleItem, HistoryEntry, RewardLedgerEntry, Routine, PhotoAsset, BoardLayout, HouseholdList, HouseholdListItem, RoutineOccurrence, AttentionState } from "./types";
+import type { Household, HouseholdMember, HouseholdTask, ScheduleItem, HistoryEntry, RewardLedgerEntry, Routine, PhotoAsset, BoardLayout, HouseholdList, HouseholdListItem, MealPlan, RoutineOccurrence, AttentionState } from "./types";
 
 class TestDatabase extends Dexie {
   households!: EntityTable<Household, "id">;
@@ -16,6 +16,7 @@ class TestDatabase extends Dexie {
   boardLayouts!: EntityTable<BoardLayout, "id">;
   lists!: EntityTable<HouseholdList, "id">;
   listItems!: EntityTable<HouseholdListItem, "id">;
+  mealPlans!: EntityTable<MealPlan, "id">;
   routineOccurrences!: EntityTable<RoutineOccurrence, "id">;
   attentionStates!: EntityTable<AttentionState, "id">;
   constructor() {
@@ -32,6 +33,7 @@ class TestDatabase extends Dexie {
       boardLayouts: "id, householdId, updatedAt",
       lists: "id, householdId, kind, updatedAt",
       listItems: "id, householdId, listId, sortOrder, completedAt",
+      mealPlans: "id, householdId, date, status, updatedAt",
       routineOccurrences: "id, householdId, routineId, occurrenceDate, status, *assigneeIds",
       attentionStates: "id, householdId, sourceType, sourceId, updatedAt",
     });
@@ -130,5 +132,20 @@ describe("DexieOpenWallRepository", () => {
     expect(loaded?.listItems).toEqual([listItem]);
     expect(loaded?.routineOccurrences).toEqual([routine]);
     expect(loaded?.attentionStates).toEqual([attention]);
+  });
+
+  it("persists meal plans and their grocery links", async () => {
+    const database = new TestDatabase();
+    databases.push(database);
+    const repository = new DexieOpenWallRepository(database as never);
+    const sample = createSampleHousehold();
+    const now = new Date().toISOString();
+    const list: HouseholdList = { id: crypto.randomUUID(), householdId: sample.household.id, title: "Groceries", kind: "grocery", memberIds: [], createdAt: now, updatedAt: now };
+    const meal: MealPlan = { id: crypto.randomUUID(), householdId: sample.household.id, date: now.slice(0, 10), name: "Tacos", servingTime: "18:30", ingredientTitles: ["Tortillas", "Beans"], status: "planned", createdAt: now, updatedAt: now };
+    const item: HouseholdListItem = { id: crypto.randomUUID(), listId: list.id, householdId: sample.household.id, title: "Tortillas", sourceMealId: meal.id, sortOrder: 0, createdAt: now, updatedAt: now };
+    await repository.replace({ ...sample, lists: [list], listItems: [item], mealPlans: [meal] });
+    const loaded = await repository.load();
+    expect(loaded?.mealPlans).toEqual([meal]);
+    expect(loaded?.listItems?.[0].sourceMealId).toBe(meal.id);
   });
 });

@@ -1,6 +1,6 @@
 # OpenWall Product Status
 
-- **Date:** 2026-09-03
+- **Date:** 2026-09-14
 - **Lifecycle stage:** Verify (Stage 5), with household validation outstanding
 - **Gate:** Conditional
 - **Active milestone:** Household usability validation
@@ -24,7 +24,8 @@
 - Implemented the optional OpenWall Guide tour, searchable offline help, release history, one-time contextual coach marks, PWA post-update education, and device-local guide preferences.
 - Added a mobile-focused install and connectivity guide with device-aware steps, an available native install prompt, explicit single-browser data boundaries, and persistent offline-readiness status.
 - Added a separate rich fictional eight-person test household, member-aware People view, future Week/Calendar views, task Lists, History, Rewards summary, and local Photos selection.
-- Added schedule kinds for reminders, school closures, holidays, early dismissals, and personal days, plus calendar-date metadata and version-2 backup validation.
+- Completed the Milestone 3 household utility layer: recurring routines, weekly planning, grocery/custom lists, meal plans with grocery promotion, device-local focus/sleep display windows, and multi-photo local rotation.
+- Added schedule kinds for reminders, school closures, holidays, early dismissals, and personal days, plus calendar-date metadata and versioned backup validation.
 - Added a dependency-free changelog guard to CI and Pages deployment with an explicit internal-change exception marker.
 - Added explicit guidance truth guardrails covering backup boundaries, browser storage, offline prerequisites, device-dependent installation, placeholder cards, and unvalidated product claims.
 - Added Apache-2.0 licensing, contributor and security policies, dependency provenance, continuous integration, and an opt-in Pages deployment workflow.
@@ -33,6 +34,7 @@
 ## Evidence and verification
 
 - **Performed:** production TypeScript build; lint; unit coverage of backups, IndexedDB repository behavior, appearance preferences, install-platform guidance, and offline-readiness state; end-to-end setup, sample, household/task persistence, appearance persistence, board-card persistence, offline reload, mobile connectivity education, settings, erase-confirmation, and safe-arrangement flows across wall and phone browser profiles.
+- **Milestone 3 verification:** 49 unit tests pass; the new meal/grocery, display schedule, and multi-photo scenarios pass across wall, compact, tablet, and phone profiles; the production bundle builds successfully.
 - **Not performed:** user interviews, physical wall-device testing, full assistive-technology audit, name/trademark search, or legal review.
 
 ## Filled assumptions
@@ -82,7 +84,9 @@
 
 ## Next milestone
 
-Test the implemented freeform corkboard experience with 5–8 household organizers and revise it from observed evidence.
+Complete the Milestone 3 household trial with 5–8 household organizers, then
+revise the utility layer from observed evidence before opening the Milestone 4
+sync architecture review.
 
 ## Human-only action
 
