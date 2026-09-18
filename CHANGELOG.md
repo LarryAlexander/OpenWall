@@ -6,6 +6,9 @@ All notable changes to OpenWall are recorded here. The format follows [Keep a Ch
 
 ### Added
 
+- Documented Milestone 4 product-completion work and Firebase cloud-sync
+  feasibility alongside the existing LAN-first review; no cloud
+  synchronization or Firebase project has been implemented or enabled.
 - Added a Family Inbox rail with prioritized task, reminder, routine, reward, and storage attention items, plus acknowledge/snooze actions and role-aware member badges.
 - Added a real Week agenda/grid, recurring routine occurrence records, shared household lists, expanded History actions, linked schedule countdowns, and local photo board actions.
 - Added a local seven-day meal planner with status, cook, preparation notes, and one-tap ingredient promotion into a deduplicated grocery list.

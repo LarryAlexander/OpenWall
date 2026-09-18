@@ -51,6 +51,11 @@ Before implementation, Milestone 4 must define:
 This record does not authorize sync implementation. It records the starting
 direction for the later high-risk architecture review.
 
+The detailed review and approval gates are tracked in the
+[Milestone 4 plan](../MILESTONE_4_PLAN.md) and
+[ADR 0002](0002-milestone-4-sync-security-and-protocol.md). Until ADR 0002 is
+approved, OpenWall remains local-only and single-browser-profile by design.
+
 ## Alternatives considered
 
 - **Bluetooth-first:** rejected as the primary transport because of range,

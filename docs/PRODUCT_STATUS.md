@@ -1,9 +1,9 @@
 # OpenWall Product Status
 
-- **Date:** 2026-09-14
+- **Date:** 2026-09-18
 - **Lifecycle stage:** Verify (Stage 5), with household validation outstanding
 - **Gate:** Conditional
-- **Active milestone:** Household usability validation
+- **Active milestone:** Milestone 4 product completion and sync-path review (implementation gated)
 - **Product owner:** Larry Alexander
 
 ## Product truth
@@ -64,6 +64,10 @@
 - **Differentiation:** local-first, hardware-agnostic, no mandatory account, open source.
 - **Distribution gate:** static demo is feasible; cross-device sync is not supplied by GitHub Pages.
 - **Unit economics:** not applicable to MVP beyond maintainer time and minimal static hosting; not yet measured.
+- **Cloud product candidate:** Firebase could support an optional hosted-sync
+  offer for a measured pilot, but 250 users versus 250 households, usage,
+  privacy, support, and billing assumptions are not yet validated. No Firebase
+  project, account flow, or cloud synchronization is implemented.
 - **Dependency/IP posture:** original implementation planned; license and dependency ledger outstanding.
 - **Decision:** conditional go for prototype and local-first vertical slice.
 
@@ -73,6 +77,8 @@
 - Browser storage can be cleared by users or the operating system; backup/restore and honest messaging are mandatory.
 - PWA installation and offline behavior vary by browser and must be validated on target hardware.
 - Calendar authorization and multi-device sync materially expand privacy and security scope.
+- A managed cloud sync option would add account recovery, billing, vendor,
+  data-residency, deletion, and support obligations beyond the local-first MVP.
 - The working name has not been checked for conflicts.
 
 ## Success signal
@@ -84,9 +90,12 @@
 
 ## Next milestone
 
-Complete the Milestone 3 household trial with 5–8 household organizers, then
-revise the utility layer from observed evidence before opening the Milestone 4
-sync architecture review.
+Milestone 4 now combines local-first product completion with a sync-path review.
+The Milestone 3 household trial remains outstanding and must be recorded before
+claiming household validation. LAN sync and Firebase cloud sync are both
+candidate paths; implementation is separately gated on explicit approval of
+identity, authorization, encryption, conflict, deletion, recovery, protocol,
+privacy, and operating-cost decisions in the Milestone 4 plan and ADR 0002.
 
 ## Human-only action
 
