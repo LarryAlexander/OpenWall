@@ -1,6 +1,6 @@
 # OpenWall Roadmap
 
-Last updated: 2026-09-03
+Last updated: 2026-09-18
 
 This roadmap orders work by evidence and dependency, not by feature excitement. Dates should be added only after the first vertical slice establishes real delivery speed.
 
@@ -76,17 +76,31 @@ See [Next Phase: A Living Household Board](NEXT_PHASE.md) for the functional and
 
 **Exit:** observed weekly use demonstrates that at least two utilities improve retention without making the Today board noisy.
 
-## Milestone 4 — Optional multi-device sync
+## Milestone 4 — Product completion and optional multi-device sync
 
-**Outcome:** a household can update the same board from multiple devices while retaining ownership and recoverability.
+**Outcome:** the local-first household product is release-ready, and the
+project has chosen and safely proved whether optional multi-device access
+should use a self-hosted LAN service, a managed cloud path, a hybrid, or no
+sync yet.
 
+- finish and record the Milestone 3 household trial;
+- close the highest-impact usability, accessibility, responsive, storage, and
+  offline-readiness gaps;
+- harden backup, restore, reset, upgrade, and user-facing product guidance;
 - write a separate decision record for identity, authorization, encryption, conflict resolution, deletion, and recovery
 - prototype a documented self-hosted sync service
+- evaluate Firebase as a managed-cloud candidate for a measured 250-user pilot,
+  including Auth, Firestore, Emulator/Security Rules tests, cost controls,
+  privacy, deletion, recovery, and vendor-exit assumptions
 - define a stable, versioned sync protocol
 - add device enrollment, revocation, audit visibility, and export
 - test offline edits, concurrent edits, clock skew, failed migrations, and lost-device recovery
 
-**Gate:** this is a high-risk architecture and privacy milestone. It requires explicit approval before implementation. GitHub Pages remains only the client host.
+**Gate:** product completion can proceed locally, but any sync implementation
+is a high-risk architecture and privacy change requiring explicit approval
+before implementation. Firebase is only a candidate until the owner chooses a
+path and approves its identity, encryption, conflict, deletion, recovery,
+privacy, cost, and operating model. GitHub Pages remains only the client host.
 
 ## Milestone 5 — Integrations and extensibility
 
