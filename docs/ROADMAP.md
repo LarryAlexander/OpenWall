@@ -6,95 +6,107 @@ This roadmap orders work by evidence and dependency, not by feature excitement. 
 
 ## Milestone 0 — Validate the wall-board experience
 
+**Status:** Prepared prototype; validation exit remains open.
+
 **Outcome:** establish that households understand and want the core interaction before building integrations.
 
-- define the primary wall-display dimensions and distance
-- create the first-run and Today-board prototype
-- test with 5–8 household organizers
-- record comprehension, task success, setup friction, and week-long usage intent
-- select the open-source license and contribution posture
+- [ ] define the primary wall-display dimensions and distance
+- [x] create the first-run and Today-board prototype
+- [ ] test with 5–8 household organizers
+- [ ] record comprehension, task success, setup friction, and week-long usage intent
+- [x] select the open-source license and contribution posture
 
-**Exit:** at least 6 participants complete the core flow unaided and at least 4 express credible intent to keep it visible for a week, or the concept is revised.
+**Exit:** [ ] at least 6 participants complete the core flow unaided and at least 4 express credible intent to keep it visible for a week, or the concept is revised.
 
 ## Milestone 1 — Local-first MVP
 
+**Status:** Implemented local-first slice; final evidence gate remains conditional.
+
 **Outcome:** one household can rely on one installed device for today's shared plan.
 
-- household and member setup
-- locally created schedule items
-- assignable household tasks
-- glanceable Today board
-- IndexedDB persistence
-- versioned backup and restore
-- installable app shell
-- production-build offline reload verification
-- responsive wall/tablet/phone layouts
-- accessibility baseline and storage-failure recovery
-- automated checks and GitHub Pages demo deployment
+- [x] household and member setup
+- [x] locally created schedule items
+- [x] assignable household tasks
+- [x] glanceable Today board
+- [x] IndexedDB persistence
+- [x] versioned backup and restore
+- [x] installable app shell
+- [x] production-build offline reload verification
+- [x] responsive wall/tablet/phone layouts
+- [ ] accessibility baseline and storage-failure recovery fully evidenced
+- [x] automated checks and GitHub Pages demo deployment
 
-**Exit:** all MVP acceptance criteria in the product brief pass on at least one desktop browser and one tablet-class mobile browser.
+**Exit:** [ ] all MVP acceptance criteria in the product brief pass on at least one desktop browser and one tablet-class mobile browser, including the remaining accessibility and storage-recovery evidence.
 
 ## Milestone 2 — Calendar usefulness
 
+**Status:** Not started beyond local calendar presentation and schedule metadata.
+
 **Outcome:** the board can incorporate schedules people already maintain without compromising local-first behavior.
 
-- evaluate local `.ics` import before provider authorization
-- calendar source labeling and per-member mapping
-- duplicate detection and import preview
-- timezone and daylight-saving test suite
-- read-only subscribed-calendar experiment
-- conflict and stale-source explanations
+- [ ] evaluate local `.ics` import before provider authorization
+- [ ] calendar source labeling and per-member mapping
+- [ ] duplicate detection and import preview
+- [ ] timezone and daylight-saving test suite
+- [ ] read-only subscribed-calendar experiment
+- [ ] conflict and stale-source explanations
 
-**Exit:** a household can import or subscribe to a real calendar safely, understand its source, and recover from errors without losing local items.
+**Exit:** [ ] a household can import or subscribe to a real calendar safely, understand its source, and recover from errors without losing local items.
 
 ## Milestone 1.5 — Living corkboard
 
+**Status:** Partially implemented; board durability and core editing are present, but the full interaction model is unfinished.
+
 **Outcome:** the new freeform board becomes functional and durable before more integrations expand its scope.
 
-- persist versioned widgets and layouts through the repository layer
-- include board content in backup, restore, reset, and recovery
-- add distinct Glance, Arrange, and Edit modes
-- implement undo/redo, card layering, locking, duplication, and keyboard arrangement
-- turn countdowns into editable, timezone-aware live clocks with completed states
-- make notes, meals, and photo cards editable rather than decorative
-- provide wall, tablet, and phone-specific interaction behavior
+- [x] persist versioned widgets and layouts through the repository layer
+- [x] include board content in backup, restore, reset, and recovery
+- [ ] add distinct Glance, Arrange, and Edit modes
+- [ ] implement undo/redo, card layering, locking, duplication, and keyboard arrangement
+- [x] turn countdowns into editable, timezone-aware live clocks with completed states
+- [x] make notes, meals, and photo cards editable rather than decorative
+- [x] provide wall, tablet, and phone-specific interaction behavior
 
-**Exit:** a household can create and edit a real countdown and note, arrange them safely, reload offline, and recover the same board from a backup.
+**Exit:** [ ] a household can create and edit a real countdown and note, arrange them safely, reload offline, and recover the same board from a backup with the complete interaction model.
 
 See [Next Phase: A Living Household Board](NEXT_PHASE.md) for the functional and UI/UX specification.
 
 ## Milestone 3 — Shared household utilities
 
+**Status:** Implementation complete for the planned local-first slice; household trial remains open.
+
 **Outcome:** OpenWall becomes useful beyond the day's schedule.
 
-- grocery and custom lists
-- meal planner linked to grocery items
-- reusable task routines
-- week view
-- focus/sleep schedule for the display
-- local photo rotation using explicitly selected files
+- [x] grocery and custom lists
+- [x] meal planner linked to grocery items
+- [x] reusable task routines
+- [x] week view
+- [x] focus/sleep schedule for the display
+- [x] local photo rotation using explicitly selected files
 
-**Exit:** observed weekly use demonstrates that at least two utilities improve retention without making the Today board noisy.
+**Exit:** [ ] observed weekly use demonstrates that at least two utilities improve retention without making the Today board noisy.
 
 ## Milestone 4 — Product completion and optional multi-device sync
+
+**Status:** Partial documentation and product-completion work; sync implementation remains gated.
 
 **Outcome:** the local-first household product is release-ready, and the
 project has chosen and safely proved whether optional multi-device access
 should use a self-hosted LAN service, a managed cloud path, a hybrid, or no
 sync yet.
 
-- finish and record the Milestone 3 household trial;
-- close the highest-impact usability, accessibility, responsive, storage, and
+- [ ] finish and record the Milestone 3 household trial;
+- [ ] close the highest-impact usability, accessibility, responsive, storage, and
   offline-readiness gaps;
-- harden backup, restore, reset, upgrade, and user-facing product guidance;
-- write a separate decision record for identity, authorization, encryption, conflict resolution, deletion, and recovery
-- prototype a documented self-hosted sync service
-- evaluate Firebase as a managed-cloud candidate for a measured 250-user pilot,
+- [ ] harden backup, restore, reset, upgrade, and user-facing product guidance;
+- [x] write a separate decision record for identity, authorization, encryption, conflict resolution, deletion, and recovery
+- [ ] prototype a documented self-hosted sync service
+- [ ] evaluate Firebase as a managed-cloud candidate for a measured 250-user pilot,
   including Auth, Firestore, Emulator/Security Rules tests, cost controls,
   privacy, deletion, recovery, and vendor-exit assumptions
-- define a stable, versioned sync protocol
-- add device enrollment, revocation, audit visibility, and export
-- test offline edits, concurrent edits, clock skew, failed migrations, and lost-device recovery
+- [ ] define a stable, versioned sync protocol
+- [ ] add device enrollment, revocation, audit visibility, and export
+- [ ] test offline edits, concurrent edits, clock skew, failed migrations, and lost-device recovery
 
 **Gate:** product completion can proceed locally, but any sync implementation
 is a high-risk architecture and privacy change requiring explicit approval
@@ -104,26 +116,30 @@ privacy, cost, and operating model. GitHub Pages remains only the client host.
 
 ## Milestone 5 — Integrations and extensibility
 
+**Status:** Not started.
+
 **Outcome:** the community can connect OpenWall to household systems without forking the core.
 
-- Home Assistant integration
-- CalDAV and provider-specific calendar connectors
-- documented extension API
-- optional NAS/local-network photo sources
-- kiosk deployment guides for common hardware
-- importers for common household tools
+- [ ] Home Assistant integration
+- [ ] CalDAV and provider-specific calendar connectors
+- [ ] documented extension API
+- [ ] optional NAS/local-network photo sources
+- [ ] kiosk deployment guides for common hardware
+- [ ] importers for common household tools
 
-**Exit:** integrations operate with least privilege, clear permission states, revocation, and failure isolation.
+**Exit:** [ ] integrations operate with least privilege, clear permission states, revocation, and failure isolation.
 
 ## Milestone 6 — Optional assistance
 
+**Status:** Not started.
+
 **Outcome:** automation reduces household entry work without taking control away from people.
 
-- review-first extraction from flyers or school schedules
-- proposed meal plans and grocery additions
-- optional local-model support
-- clearly separated hosted-AI adapter
-- provenance, confidence, privacy, and Apply/Discard controls
+- [ ] review-first extraction from flyers or school schedules
+- [ ] proposed meal plans and grocery additions
+- [ ] optional local-model support
+- [ ] clearly separated hosted-AI adapter
+- [ ] provenance, confidence, privacy, and Apply/Discard controls
 
 **Gate:** no assistant may silently change the household plan. AI remains removable and is never required for core use.
 
